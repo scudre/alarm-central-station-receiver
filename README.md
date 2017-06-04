@@ -1,11 +1,9 @@
 # alarm-central-station-receiver
                                                          
-**This is currently a work in progress** -- More information, and details to come soon.
+**Note:** I make no warranties or guarantees on the relability of this software when it comes to monitoring your home alarm system.  It's simply intended to be a fun software project!
 
 ## Overview
 So what is this?  This is a python based project for receiving Contact-ID messages from a home alarm system.  It listens for incoming phone calls via a USB FXO with DTMF decoding (currently only magicJack is supported), and relays the messages via e-mail to the user.
-
-*Note:* Use this at your own risk! There are no warranties or guarantees on the relability of this software when it comes to monitoring your home alarm system.  It's simply intended to be a fun software project!
 
 ### How does this work exactly?
 
@@ -15,18 +13,17 @@ Once the alarm receives the handshake, it begins transmitting it's message(s) to
 
 ### Reasons for Building This
 
-There were two reasons why this software was built.  First of all I wanted a way to monitor my home alarm system when I was away from home without having to pay a monthly fee to a central alarm company.  Second, my alarm the DSC PC9155 does not support serial communication like DSC Powerseries alarms do.  This forced me to connect to it via the phoneline and contact-id protocol. 
-
-## Required Hardware & Software
-
-1) Debian OS -- only software this has been run on though it should run on any Linux OS distro easily
-2) magicJack -- original version which is silver with the clear window on it.  You can find these really cheap on eBay.
-3) Alarm System -- See details on alarms below
-4) (Optional) Raspberry Pi -- This is great to use as you can mount it in a small box right next to your alarm system
-
-### Alarm Systems
-So far this has been tested with the DSC PC9155 alarm only.  Though it should work with any alarm system that supports the Contact-ID protocol via phoneline.  Contact-ID is the standard used for communciations over the phone, so every alarm system you run into will support it.
+First of all I wanted a way to monitor my home alarm system when I was away from home without having to pay a monthly fee to a central alarm company.  Second, my alarm the DSC PC9155 does not support serial communication like DSC Powerseries alarms do.  This forced me to connect to it via the phoneline and contact-id protocol. 
 
 ## Setup
+### Required Hardware & Software
 
-*TBD*
+1) Debian OS — Should work with any Linux distro, but only this one has been tested
+2) Original silver USB magicJack — You can find this on eBay for pretty cheap
+3) Alarm System — See 'Alarm Systems' below
+4) (Optional) Raspberry Pi — This is great to use as you can mount it in a small box right next to your alarm system
+
+#### Alarm Systems
+This software communciates with the alarm via telephone and the Contact-ID protocol, which is supported by just about every alarm system out there.  So this will most likely work with yours.  At this time, the software though has been confirmed to work with the following systems:
+
+- DSC PC9155
