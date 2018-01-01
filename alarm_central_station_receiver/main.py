@@ -159,7 +159,7 @@ def main():
                                    stderr=(sys.stderr if args.no_fork else None),
                                    stdout=(sys.stdout if args.no_fork else None))
     context.signal_map = { signal.SIGTERM: sigcleanup_handler,
-                           signal.SIGINT: sigcleanup_handle }
+                           signal.SIGINT: sigcleanup_handler }
     with context:
         alarm_main_loop()
 

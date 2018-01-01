@@ -27,3 +27,6 @@ First of all I wanted a way to monitor my home alarm system when I was away from
 This software communciates with the alarm via telephone and the Contact-ID protocol, which is supported by just about every alarm system out there.  So this will most likely work with yours.  At this time, the software though has been confirmed to work with the following systems:
 
 - DSC PC9155
+
+## Acknowledgments
+* Thanks to Môshe van der Sterre for writing the original TigerJet driver: http://moshe.nl/tjapi.html
