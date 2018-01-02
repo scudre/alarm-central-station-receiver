@@ -28,7 +28,14 @@ contact_info = {
     'port' : 587
 }
 
+def settings_missing():
+    return '' in contact_info.values()
+
 def send_email(message):
+    if settings_missing():
+        logging.info("Skipping Email send, no settings in email_notify.py")
+        return
+        
     logging.info("Sending Email...")
 
     msg = MIMEMultipart('alternative')

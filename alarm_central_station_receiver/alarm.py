@@ -107,7 +107,7 @@ class Alarm(object):
 
         if email_codes:
             # Send notifications if any configured
-            logging.info("Home Alarm Calling:\n%s" % '\n'.join(email_codes))
+            logging.info("Home Alarm Calling:\n%s" % ', '.join(email_codes))
             notify(email_codes)
         else:
             logging.info("Empty Code List!")

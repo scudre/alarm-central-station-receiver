@@ -19,6 +19,8 @@ import time
 import os.path
 from pyaudio import PyAudio, paContinue
 
+TJ_DEV_INDEX = -1
+
 class Handshake():
     def __enter__(self):
         """
@@ -29,12 +31,12 @@ class Handshake():
         """
         logging.info("Handshake Initiated")
 
+        # TigerJet seems to only support 8k & 16k sample rates
         self.wf = wave.open(
-            os.path.abspath(os.path.join(os.path.dirname(__file__), 'handshake.wav')),
+            os.path.abspath(os.path.join(os.path.dirname(__file__), 'handshake16k.wav')),
             'rb')
 
         self.p = PyAudio()
-
         def play_alarm(in_data, frame_count, time_info, status):
             data = self.wf.readframes(frame_count)
             return (data, paContinue)
@@ -43,7 +45,8 @@ class Handshake():
                                   channels=self.wf.getnchannels(),
                                   rate=self.wf.getframerate(),
                                   output=True,
-                                  stream_callback=play_alarm)
+                                  stream_callback=play_alarm,
+                                  output_device_index=TJ_DEV_INDEX)
 
         self.stream.start_stream()
 
@@ -57,3 +60,17 @@ class Handshake():
 
         self.p.terminate()
         logging.info("Handshake Complete")
+
+
+def find_tigerjet_audio_device():
+    p = PyAudio()
+    for dev_idx in range(0, p.get_device_count()):
+        if 'TigerJet' in p.get_device_info_by_index(dev_idx).get('name'):
+            global TJ_DEV_INDEX 
+            TJ_DEV_INDEX = dev_idx
+            break
+    else:
+        raise RuntimeError('TigerJet audio output device not found!')
+
+def initialize():
+    find_tigerjet_audio_device()

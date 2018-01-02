@@ -24,6 +24,9 @@ import time
 import shelve
 import signal
 import tigerjet
+
+from os import geteuid
+from sys import stderr
 from select import select
 from contact_id import handshake
 from alarm import Alarm
@@ -41,6 +44,7 @@ def collect_alarm_codes(fd):
         off_hook, digit = get_phone_status(fd)
         while off_hook:
             if digit == -1:
+                off_hook, digit = get_phone_status(fd)
                 continue
 
             # 0 is treated as 10 in the checksum calculation
@@ -124,11 +128,9 @@ def init_logging():
 
 def alarm_main_loop():
     init_logging()
-    logging.info("Started")
-
-    tigerjet.initialize()
-
     with open('/dev/hidraw0', 'rb') as alarmhid:
+        logging.info("Ready listening for alarms")
+
         while True:
             # read, write, error
             read, _, _ = select([alarmhid], [], [])
@@ -151,9 +153,19 @@ def sigcleanup_handler(signum, frame):
     sys.exit(0)
 
 def main():
+    if geteuid() != 0:
+        stderr.write("Error: Alarmd must run as root - exiting\n")
+        return (-1)
+
     parser = argparse.ArgumentParser(prog='alarmd')
     parser.add_argument('--no-fork', action='store_true', default=False)
     args = parser.parse_args()
+
+    logging.info("Starting in %s mode" % 'no-fork' if args.no_fork else 'daemonized')
+
+    tigerjet.initialize()
+    handshake.initialize()
+
     context = daemon.DaemonContext(detach_process=(not args.no_fork),
                                    pidfile=lockfile.FileLock('/var/run/alarmd.pid'),
                                    stderr=(sys.stderr if args.no_fork else None),
