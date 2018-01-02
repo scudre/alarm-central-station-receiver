@@ -1,6 +1,7 @@
 # alarm-central-station-receiver
-                                                         
-**Note:** I make no warranties or guarantees on the relability of this software when it comes to monitoring your home alarm system.  It's simply intended to be a fun software project!
+  
+## Disclaimer 
+I make no warranties or guarantees on the relability of this software when it comes to monitoring your home alarm system.  It's simply intended to be a fun software project!
 
 ## Overview
 So what is this?  This is a python based project for receiving Contact-ID messages from a home alarm system.  It listens for incoming phone calls via a USB magicJack (the original silver kind), decodes the DTMF codes from the alarm, and relays the messages to the user via e-mail.  Only a magicJack is supported, though any USB device that can decode DTMF and detect on-hook/off-hook could work with this software.
