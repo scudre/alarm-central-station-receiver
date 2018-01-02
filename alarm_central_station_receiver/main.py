@@ -128,7 +128,7 @@ def init_logging():
 
 def alarm_main_loop():
     init_logging()
-    with open('/dev/hidraw0', 'rb') as alarmhid:
+    with open(tigerjet.hidraw_path(), 'rb') as alarmhid:
         logging.info("Ready listening for alarms")
 
         while True:
