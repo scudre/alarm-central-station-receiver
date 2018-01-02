@@ -29,4 +29,5 @@ This software communciates with the alarm via telephone and the Contact-ID proto
 - DSC PC9155
 
 ## Acknowledgments
+* Thanks to li0r for explaining the contact ID protocol, and providing the inspiration for this project: https://li0r.wordpress.com/contact-id-protocol/
 * Thanks to Môshe van der Sterre for writing the original TigerJet driver: http://moshe.nl/tjapi.html
