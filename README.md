@@ -6,6 +6,8 @@ I make no warranties or guarantees on the relability of this software when it co
 ## Overview
 So what is this?  This is a python based project for receiving Contact-ID messages from a home alarm system.  It listens for incoming phone calls via a USB magicJack (the original silver kind), decodes the DTMF codes from the alarm, and relays the messages to the user via e-mail.  Only a magicJack is supported, though any USB device that can decode DTMF and detect on-hook/off-hook could work with this software.
 
+<p align="center"><img src=documentation/alarm-diagram.jpg /></p>
+          
 ### Can you explain in more detail?
 
 The alarm-central-station-receiver daemon relies on the magicJack to signal to it when the home alarm system is dialing out.  When this occurs, the daemon answers the phone, and responds to the alarm with the contact-id handshake.  Credit to li0r for [explaining the protocol](https://li0r.wordpress.com/contact-id-protocol/)
