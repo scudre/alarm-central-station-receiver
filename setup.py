@@ -7,7 +7,7 @@ pytjapi = Extension(
 
 setup(
     name='alarm_central_station_receiver',
-    version='0.0.7',
+    version='0.0.8',
     author='Chris Scuderi',
     license='Apache License Version 2.0',
     description='Software based central station receiver for home alarm systems',
@@ -19,7 +19,7 @@ setup(
         'console_scripts': ['alarmd=alarm_central_station_receiver.main:main']
         },
     install_requires = [
-        'RPi.GPIO',
+        #XXX scud add support later 'RPi.GPIO',
         'pyaudio',
         'python-daemon'
     ]

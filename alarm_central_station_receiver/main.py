@@ -26,12 +26,11 @@ import signal
 import tigerjet
 
 from os import geteuid
-from sys import stderr
+from sys import stderr, stdout
 from select import select
 from contact_id import handshake
 from alarm import Alarm
-
-mynumber = "815"
+from alarm_config import AlarmConfig
 
 def collect_alarm_codes(fd):
     logging.info("Collecting Alarm Codes")
@@ -103,8 +102,8 @@ def get_phone_status(fd):
 
     return (off_hook, digit)
 
-def handle_alarm_calling(alarm, fd):
-    if validate_alarm_call_in(fd, mynumber):
+def handle_alarm_calling(alarm, fd, number):
+    if validate_alarm_call_in(fd, number):
         codes = collect_alarm_codes(fd)
         alarm.add_new_events(codes)
 
@@ -128,6 +127,7 @@ def init_logging():
 
 def alarm_main_loop():
     init_logging()
+    phone_number = AlarmConfig.get('AlarmSystem', 'phone_number')
     with open(tigerjet.hidraw_path(), 'rb') as alarmhid:
         logging.info("Ready listening for alarms")
 
@@ -139,33 +139,65 @@ def alarm_main_loop():
             alarm = alarm_config.get('alarm', Alarm())
 
             if alarmhid in read:
-                handle_alarm_calling(alarm, alarmhid)
+                handle_alarm_calling(alarm, alarmhid, phone_number)
 
             alarm_config['alarm'] = alarm
             alarm_config.close()
 
     return 0
-    
-    
+
 def sigcleanup_handler(signum, frame):
     sig_name = next(v for v, k in signal.__dict__.iteritems() if k == signum)
     logging.info("Received %s, exiting" % sig_name)
     sys.exit(0)
 
-def main():
+def check_running_root():
     if geteuid() != 0:
         stderr.write("Error: Alarmd must run as root - exiting\n")
-        return (-1)
+        sys.exit(-1)
 
-    parser = argparse.ArgumentParser(prog='alarmd')
-    parser.add_argument('--no-fork', action='store_true', default=False)
-    args = parser.parse_args()
+def check_required_config(path):
+    AlarmConfig.load(path)
+    missing_config = AlarmConfig.validate(AlarmConfig.get())
+    if missing_config:
+        stderr.write('Error: The following required configuration is missing from %s\n\n' % path)
+        stderr.write('\n'.join(missing_config))
+        stderr.write('\n\nExiting\n\n')
+        sys.exit(-1)
 
-    logging.info("Starting in %s mode" % 'no-fork' if args.no_fork else 'daemonized')
-
+def initialize(config_path):
+    check_running_root()
+    check_required_config(config_path)
     tigerjet.initialize()
     handshake.initialize()
 
+def write_config_exit(config_path):
+    check_running_root()
+    stdout.write('Writing configuration to %s and exiting.\n' % config_path)
+    AlarmConfig.create(config_path)
+    sys.exit(0)
+
+def main():
+    parser = argparse.ArgumentParser(prog='alarmd')
+    parser.add_argument('--no-fork',
+                        action='store_true',
+                        default=False,
+                        help='Run alarmd in the foreground, useful for debugging')
+    parser.add_argument('-c', '--config',
+                        default='/etc/alarmd_config.ini',
+                        metavar='config_path',
+                        dest='config_path',
+                        help='Alarm config file path and filename')
+    parser.add_argument('--create-config',
+                        action='store_true',
+                        default=False,
+                        help='Create new alarm config file, and exit.')
+    args = parser.parse_args()
+    if args.create_config:
+        write_config_exit(args.config_path)
+
+    logging.info("Starting in %s mode" % 'no-fork' if args.no_fork else 'daemonized')
+    initialize(args.config_path)
     context = daemon.DaemonContext(detach_process=(not args.no_fork),
                                    pidfile=lockfile.FileLock('/var/run/alarmd.pid'),
                                    stderr=(sys.stderr if args.no_fork else None),
