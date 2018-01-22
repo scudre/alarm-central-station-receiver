@@ -15,11 +15,11 @@ setup(
     ext_modules=[pytjapi],
     zip_safe=False,
     include_package_data=True,
-    entry_points = {
+    entry_points={
         'console_scripts': ['alarmd=alarm_central_station_receiver.main:main']
-        },
-    install_requires = [
-        #XXX scud add support later 'RPi.GPIO',
+    },
+    install_requires=[
+        # XXX scud add support later 'RPi.GPIO',
         'pyaudio',
         'python-daemon'
     ]

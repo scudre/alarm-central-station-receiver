@@ -2,8 +2,10 @@ import pytjapi
 
 TJ_ID = -1
 
+
 def hidraw_path():
     return '/dev/hidraw%d' % TJ_ID
+
 
 def initialize():
     """
@@ -14,11 +16,11 @@ def initialize():
 
     :raises ValueError: if TigerJet not found
     """
-    for id in range(0,10):
+    for id in range(0, 10):
         with open('/dev/usb/hiddev%d' % id, 'rb') as fd:
             if not pytjapi.is_tigerjet(fd.fileno()):
                 continue
-    
+
             # Enable DTMF and Hook Status HID reports
             data = pytjapi.read(fd.fileno(), 0x4e)
             pytjapi.write(fd.fileno(), 0x4e, (data | 0x40))

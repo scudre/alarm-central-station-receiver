@@ -17,7 +17,7 @@ import socket
 import json
 import os
 
-SOCKFILE="/tmp/alarm_socket"
+SOCKFILE = "/tmp/alarm_socket"
 
 
 def start_socket_server():
@@ -27,16 +27,19 @@ def start_socket_server():
     s.listen(5)
     return s
 
+
 def start_socket_client():
-      s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-      s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-      s.connect(SOCKFILE)
-      return s
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.connect(SOCKFILE)
+    return s
+
 
 def send(sock, obj):
     msg = json.dumps(obj)
     packet = '%05d%s' % (len(msg), msg)
     sock.sendall(packet)
+
 
 def recv(sock):
     msg_len = int(sock.recv(5))
@@ -47,6 +50,7 @@ def recv(sock):
         msg = msg + chunk
 
     return json.loads(msg)
+
 
 def cleanup_socket_server(sock):
     sock.close()

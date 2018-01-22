@@ -77,7 +77,8 @@ EVENTS = {
     '627000': {'1': ('MA', 'Installer Lead In')},
     '628000': {'1': ('MA', 'Installer Lead Out')},
     '654000': {'1': ('MA', 'Delinquency')}
-    }
+}
+
 
 def create_event_description(event_type, event):
     """
@@ -100,6 +101,7 @@ def create_event_description(event_type, event):
 
     return event_type_name, description
 
+
 def get_zone_name(sensor_code):
     zone_name = AlarmConfig.get('ZoneMapping', sensor_code)
     if not zone_name:
@@ -107,11 +109,12 @@ def get_zone_name(sensor_code):
 
     return zone_name
 
+
 def digits_to_alarmreport(code):
     """
     Given a raw contact id DTMF string from a DSC alarm,
     return the alarm description and event type.
-    
+
     4567 18 1 570 00 016 4
     ACCT MT Q CCC GG ZZZ S
     NNNN 18 1 = new event

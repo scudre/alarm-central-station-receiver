@@ -22,14 +22,15 @@ from collections import deque
 from contact_id import dsc
 from notifications import notify
 
+
 class Alarm(object):
     def __init__(self):
         self.alarm_mode = "stay"
         self.system_status = "ok"
         self.history = deque()
         self.outstanding = {}
-		# XXX gracefully handle if someone does not have a raspberry pi
-        #self._initialize_rpi_gpio()
+        # XXX gracefully handle if someone does not have a raspberry pi
+        # self._initialize_rpi_gpio()
 
     def _update_system_status(self):
         """
@@ -95,10 +96,10 @@ class Alarm(object):
                         'Checksum Mismatch: %s' % code
                 email_codes.append(description)
 
-            new_entry = {'timestamp' : curr_time,
-                         'type' : report_type,
-                         'description' : description,
-                         'id' : code[7:10] + code[12:15],
+            new_entry = {'timestamp': curr_time,
+                         'type': report_type,
+                         'description': description,
+                         'id': code[7:10] + code[12:15],
                          }
 
             self.history.appendleft(new_entry)
@@ -129,9 +130,9 @@ class Alarm(object):
 
     def json_state(self):
         outstanding_json = [entry for entry in self.outstanding.itervalues()]
-        state = {'mode' : self.alarm_mode,
-                 'status' : self.system_status,
-                 'outstanding_events' : outstanding_json,
+        state = {'mode': self.alarm_mode,
+                 'status': self.system_status,
+                 'outstanding_events': outstanding_json,
                  }
 
         return dumps(state)
@@ -156,9 +157,9 @@ class Alarm(object):
         keyswitch'. Toggling this I/O port triggers the alarm
         to arm and disarm.
         """
-        GPIO.output(15, not GPIO.input(15))
+        #GPIO.output(15, not GPIO.input(15))
         time.sleep(2)
-        GPIO.output(15, not GPIO.input(15))
+        #GPIO.output(15, not GPIO.input(15))
 
     def _initialize_rpi_gpio(self):
         """
@@ -167,6 +168,7 @@ class Alarm(object):
         keyswitch'. Toggling this I/O port triggers the alarm
         to arm and disarm.
         """
-        GPIO.setwarnings(False)
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(15, GPIO.OUT)
+        return None
+        #GPIO.setwarnings(False)
+        #GPIO.setmode(GPIO.BOARD)
+        #GPIO.setup(15, GPIO.OUT)

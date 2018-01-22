@@ -32,6 +32,7 @@ from contact_id import handshake
 from alarm import Alarm
 from alarm_config import AlarmConfig
 
+
 def collect_alarm_codes(fd):
     logging.info("Collecting Alarm Codes")
     code = ''
@@ -64,6 +65,7 @@ def collect_alarm_codes(fd):
 
     return codes
 
+
 def validate_alarm_call_in(fd, expected):
     number = '000'
     off_hook, digit = get_phone_status(fd)
@@ -89,6 +91,7 @@ def validate_alarm_call_in(fd, expected):
 
     return number == expected and off_hook
 
+
 def get_phone_status(fd):
 
     # XXX for python 3 no need to have ORD, can directly read/write
@@ -101,6 +104,7 @@ def get_phone_status(fd):
         digit = digit - 1
 
     return (off_hook, digit)
+
 
 def handle_alarm_calling(alarm, fd, number):
     if validate_alarm_call_in(fd, number):
@@ -125,6 +129,7 @@ def init_logging():
     console.setFormatter(formatter)
     root_logger.addHandler(console)
 
+
 def alarm_main_loop():
     init_logging()
     phone_number = AlarmConfig.get('AlarmSystem', 'phone_number')
@@ -146,24 +151,30 @@ def alarm_main_loop():
 
     return 0
 
+
 def sigcleanup_handler(signum, frame):
     sig_name = next(v for v, k in signal.__dict__.iteritems() if k == signum)
     logging.info("Received %s, exiting" % sig_name)
     sys.exit(0)
+
 
 def check_running_root():
     if geteuid() != 0:
         stderr.write("Error: Alarmd must run as root - exiting\n")
         sys.exit(-1)
 
+
 def check_required_config(path):
     AlarmConfig.load(path)
     missing_config = AlarmConfig.validate(AlarmConfig.get())
     if missing_config:
-        stderr.write('Error: The following required configuration is missing from %s\n\n' % path)
+        stderr.write(
+            'Error: The following required configuration is missing from %s\n\n' %
+            path)
         stderr.write('\n'.join(missing_config))
         stderr.write('\n\nExiting\n\n')
         sys.exit(-1)
+
 
 def initialize(config_path):
     check_running_root()
@@ -171,18 +182,21 @@ def initialize(config_path):
     tigerjet.initialize()
     handshake.initialize()
 
+
 def write_config_exit(config_path):
     check_running_root()
     stdout.write('Writing configuration to %s and exiting.\n' % config_path)
     AlarmConfig.create(config_path)
     sys.exit(0)
 
+
 def main():
     parser = argparse.ArgumentParser(prog='alarmd')
-    parser.add_argument('--no-fork',
-                        action='store_true',
-                        default=False,
-                        help='Run alarmd in the foreground, useful for debugging')
+    parser.add_argument(
+        '--no-fork',
+        action='store_true',
+        default=False,
+        help='Run alarmd in the foreground, useful for debugging')
     parser.add_argument('-c', '--config',
                         default='/etc/alarmd_config.ini',
                         metavar='config_path',
@@ -196,16 +210,23 @@ def main():
     if args.create_config:
         write_config_exit(args.config_path)
 
-    logging.info("Starting in %s mode" % 'no-fork' if args.no_fork else 'daemonized')
+    logging.info(
+        "Starting in %s mode" %
+        'no-fork' if args.no_fork else 'daemonized')
     initialize(args.config_path)
-    context = daemon.DaemonContext(detach_process=(not args.no_fork),
-                                   pidfile=lockfile.FileLock('/var/run/alarmd.pid'),
-                                   stderr=(sys.stderr if args.no_fork else None),
-                                   stdout=(sys.stdout if args.no_fork else None))
-    context.signal_map = { signal.SIGTERM: sigcleanup_handler,
-                           signal.SIGINT: sigcleanup_handler }
+    context = daemon.DaemonContext(
+        detach_process=(
+            not args.no_fork),
+        pidfile=lockfile.FileLock('/var/run/alarmd.pid'),
+        stderr=(
+            sys.stderr if args.no_fork else None),
+        stdout=(
+            sys.stdout if args.no_fork else None))
+    context.signal_map = {signal.SIGTERM: sigcleanup_handler,
+                          signal.SIGINT: sigcleanup_handler}
     with context:
         alarm_main_loop()
+
 
 if __name__ == "__main__":
     sys.exit(main())

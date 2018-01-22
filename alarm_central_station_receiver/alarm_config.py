@@ -4,6 +4,7 @@ import os.path
 
 LOADED_CONFIG = {}
 
+
 class AlarmConfig:
     @staticmethod
     def exists(path):
@@ -14,7 +15,8 @@ class AlarmConfig:
         config = ConfigParser.ConfigParser()
         config.read(path)
         global LOADED_CONFIG
-        LOADED_CONFIG = { key : dict( config.items(key) ) for key in config.sections() }
+        LOADED_CONFIG = {key: dict(config.items(key))
+                         for key in config.sections()}
 
     @staticmethod
     def get(*argv):
@@ -39,15 +41,20 @@ class AlarmConfig:
         email_config = config.get('EmailNotification')
         for keyword in email_keywords:
             if not email_config.get(keyword):
-                missing_config.append('[EmailNotification] Section: %s' % keyword)
+                missing_config.append(
+                    '[EmailNotification] Section: %s' %
+                    keyword)
 
         return missing_config
 
     @staticmethod
     def create(path):
         if not AlarmConfig.exists(path):
-            shutil.copy(os.path.abspath(
-                os.path.join(os.path.dirname(__file__), 'config_template.ini')),
+            shutil.copy(
+                os.path.abspath(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        'config_template.ini')),
                 path)
             return True
 

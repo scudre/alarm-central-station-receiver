@@ -21,6 +21,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from ..alarm_config import AlarmConfig
 
+
 def send_email(message):
     logging.info("Sending Email...")
     username = AlarmConfig.get('EmailNotification', 'username')

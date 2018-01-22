@@ -15,6 +15,6 @@ limitations under the License.
 """
 from email_notify import send_email_async
 
+
 def notify(message):
     send_email_async(message)
-    
