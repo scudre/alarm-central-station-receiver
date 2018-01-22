@@ -15,7 +15,8 @@ limitations under the License.
 """
 import logging
 import time
-import RPi.GPIO as GPIO
+# XXX Comment out for now
+#import RPi.GPIO as GPIO
 from json import dumps
 from collections import deque
 from contact_id import dsc
@@ -27,7 +28,8 @@ class Alarm(object):
         self.system_status = "ok"
         self.history = deque()
         self.outstanding = {}
-        self._initialize_rpi_gpio()
+		# XXX gracefully handle if someone does not have a raspberry pi
+        #self._initialize_rpi_gpio()
 
     def _update_system_status(self):
         """

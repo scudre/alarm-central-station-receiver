@@ -1,6 +1,7 @@
 """
 DSC Contact ID Codes to Descriptions
 """
+from ..alarm_config import AlarmConfig
 
 EVENTS = {
     '100000': {'1': ('A', 'Aux Key Alarm')},
@@ -78,20 +79,6 @@ EVENTS = {
     '654000': {'1': ('MA', 'Delinquency')}
     }
 
-ZONES = {
-    '001' : 'Front Door',
-    '002' : 'Inside Garage Door',
-    '003' : 'Kitchen Window',
-    '004' : 'Outside Garage Door',
-    '005' : 'Motion Sensor',
-    '006' : 'Left Dining Room Window',
-    '007' : 'Right Dining Room Window',
-    '008' : 'Left Family Window',
-    '009' : 'Middle Family Window',
-    '010' : 'Right Family Window',
-    '011' : 'Kitchen Door',
-    }
-
 def create_event_description(event_type, event):
     """
     Create the alarm description by using the '1' event type
@@ -112,6 +99,13 @@ def create_event_description(event_type, event):
         description += 'Unknown Event Type'
 
     return event_type_name, description
+
+def get_zone_name(sensor_code):
+    zone_name = AlarmConfig.get('ZoneMapping', sensor_code)
+    if not zone_name:
+        zone_name = 'Zone %s' % sensor_code
+
+    return zone_name
 
 def digits_to_alarmreport(code):
     """
@@ -138,7 +132,7 @@ def digits_to_alarmreport(code):
         user_event = EVENTS.get(event_code + 'UUU')
         if zone_event:
             event = zone_event
-            zone_name = ZONES.get(sensor_code, 'Unknown Zone')
+            zone_name = get_zone_name(sensor_code)
             extra_desc = ' %s (%s)' % (zone_name, sensor_code)
         elif user_event:
             event = user_event

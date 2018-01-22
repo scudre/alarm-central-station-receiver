@@ -19,38 +19,29 @@ import multiprocessing
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-
-contact_info = {
-    'user' : '',
-    'password' : '',
-    'to' : '',
-    'server' : '',
-    'port' : 587
-}
-
-def settings_missing():
-    return '' in contact_info.values()
+from ..alarm_config import AlarmConfig
 
 def send_email(message):
-    if settings_missing():
-        logging.info("Skipping Email send, no settings in email_notify.py")
-        return
-        
     logging.info("Sending Email...")
+    username = AlarmConfig.get('EmailNotification', 'username')
+    password = AlarmConfig.get('EmailNotification', 'password')
+    to_addr = AlarmConfig.get('EmailNotification', 'notification_email')
+    server = AlarmConfig.get('EmailNotification', 'server_address')
+    server_port = AlarmConfig.get('EmailNotification', 'port')
 
     msg = MIMEMultipart('alternative')
-    msg['From'] = contact_info['user']
-    msg['To'] = contact_info['to']
+    msg['From'] = username
+    msg['To'] = to_addr
     body = "%s:\n%s" % (time.strftime("%b %d %I:%M:%S %p"), '\n'.join(message))
     msg.attach(MIMEText(body, 'plain'))
     msg.attach(MIMEText(body, 'html'))
 
-    s = smtplib.SMTP(contact_info['server'], contact_info['port'])
+    s = smtplib.SMTP(server, server_port)
     s.ehlo()
     s.starttls()
     s.ehlo()
-    s.login(contact_info['user'], contact_info['password'])
-    s.sendmail(contact_info['user'], [contact_info['to']], msg.as_string())
+    s.login(username, password)
+    s.sendmail(username, [to_addr], msg.as_string())
     s.quit()
 
     logging.info("Email Send Complete")
