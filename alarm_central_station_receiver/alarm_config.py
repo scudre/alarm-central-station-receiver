@@ -1,3 +1,18 @@
+"""
+Copyright (2018) Chris Scuderi
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 import ConfigParser
 import shutil
 import os.path
@@ -29,7 +44,7 @@ class AlarmConfig:
     @staticmethod
     def validate(config):
         missing_config = []
-        if not config.get('AlarmSystem').get('phone_number'):
+        if not config.get('AlarmSystem', {}).get('phone_number'):
             missing_config.append('[AlarmSystem] Section: phone_number')
 
         email_keywords = ['username',
@@ -38,12 +53,9 @@ class AlarmConfig:
                           'port',
                           'notification_email']
 
-        email_config = config.get('EmailNotification')
         for keyword in email_keywords:
-            if not email_config.get(keyword):
-                missing_config.append(
-                    '[EmailNotification] Section: %s' %
-                    keyword)
+            if not config.get('EmailNotification', {}).get(keyword):
+                missing_config.append('[EmailNotification] Section: %s' % keyword)
 
         return missing_config
 
