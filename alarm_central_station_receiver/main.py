@@ -1,4 +1,3 @@
-#!/usr/bin/python2.7
 """
 Copyright (2017) Chris Scuderi
 
@@ -164,7 +163,11 @@ def check_running_root():
         sys.exit(-1)
 
 
-def check_required_config(path):
+def create_or_check_required_config(path):
+    if not AlarmConfig.exists(path):
+        stdout.write('Configuration missing, writing to %s.\n\n' % path)
+        AlarmConfig.create(path)
+
     AlarmConfig.load(path)
     missing_config = AlarmConfig.validate(AlarmConfig.get())
     if missing_config:
@@ -178,15 +181,20 @@ def check_required_config(path):
 
 def initialize(config_path):
     check_running_root()
-    check_required_config(config_path)
+    create_or_check_required_config(config_path)
     tigerjet.initialize()
     handshake.initialize()
 
 
 def write_config_exit(config_path):
     check_running_root()
-    stdout.write('Writing configuration to %s and exiting.\n' % config_path)
-    AlarmConfig.create(config_path)
+
+    if not AlarmConfig.exists(config_path):
+        stdout.write('Writing configuration to %s and exiting.\n' % config_path)
+        AlarmConfig.create(config_path)
+    else:
+        stdout.write('Configuration at %s already exists, skipping write\n' % config_path)
+
     sys.exit(0)
 
 

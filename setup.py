@@ -7,7 +7,7 @@ pytjapi = Extension(
 
 setup(
     name='alarm_central_station_receiver',
-    version='0.0.8',
+    version='0.0.9',
     author='Chris Scuderi',
     license='Apache License Version 2.0',
     description='Software based central station receiver for home alarm systems',
