@@ -27,19 +27,23 @@ def send_email(message):
     username = AlarmConfig.get('EmailNotification', 'username')
     password = AlarmConfig.get('EmailNotification', 'password')
     to_addr = AlarmConfig.get('EmailNotification', 'notification_email')
+    subject = AlarmConfig.get('EmailNotification', 'notification_subject')
+    tls = AlarmConfig.get('EmailNotification', 'tls')
     server = AlarmConfig.get('EmailNotification', 'server_address')
     server_port = AlarmConfig.get('EmailNotification', 'port')
 
     msg = MIMEMultipart('alternative')
     msg['From'] = username
     msg['To'] = to_addr
+    mst['Subject'] = subject
     body = "%s:\n%s" % (time.strftime("%b %d %I:%M:%S %p"), '\n'.join(message))
     msg.attach(MIMEText(body, 'plain'))
     msg.attach(MIMEText(body, 'html'))
 
     s = smtplib.SMTP(server, server_port)
     s.ehlo()
-    s.starttls()
+    if bool(tls) == True:
+    	s.starttls()
     s.ehlo()
     s.login(username, password)
     s.sendmail(username, [to_addr], msg.as_string())
