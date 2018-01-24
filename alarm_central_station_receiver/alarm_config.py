@@ -53,7 +53,7 @@ class AlarmConfig:
                           'port',
                           'notification_email',
                           'notification_subject',
-			  'tls']
+                          'tls']
 
         for keyword in email_keywords:
             if not config.get('EmailNotification', {}).get(keyword):
