@@ -35,14 +35,14 @@ def send_email(message):
     msg = MIMEMultipart('alternative')
     msg['From'] = username
     msg['To'] = to_addr
-    mst['Subject'] = subject
+    msg['Subject'] = subject
     body = "%s:\n%s" % (time.strftime("%b %d %I:%M:%S %p"), '\n'.join(message))
     msg.attach(MIMEText(body, 'plain'))
     msg.attach(MIMEText(body, 'html'))
 
     s = smtplib.SMTP(server, server_port)
     s.ehlo()
-    if bool(tls) == True:
+    if tls.lower() in ("yes", "true", "t", "1"):
     	s.starttls()
     s.ehlo()
     s.login(username, password)
