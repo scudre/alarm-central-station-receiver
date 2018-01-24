@@ -52,7 +52,7 @@ class AlarmConfig:
                           'server_address',
                           'port',
                           'notification_email',
-			  'notification_subject',
+                          'notification_subject',
 			  'tls']
 
         for keyword in email_keywords:
