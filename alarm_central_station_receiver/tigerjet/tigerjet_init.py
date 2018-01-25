@@ -1,10 +1,11 @@
+import glob
 import pytjapi
 
-TJ_ID = -1
+TJ_ID = ''
 
 
 def hidraw_path():
-    return '/dev/hidraw%d' % TJ_ID
+    return '/dev/hidraw%s' % TJ_ID
 
 
 def initialize():
@@ -16,8 +17,8 @@ def initialize():
 
     :raises ValueError: if TigerJet not found
     """
-    for id in range(0, 10):
-        with open('/dev/usb/hiddev%d' % id, 'rb') as fd:
+    for file_name in glob.glob('/dev/usb/hiddev*'):
+        with open(file_name, 'rb') as fd:
             if not pytjapi.is_tigerjet(fd.fileno()):
                 continue
 
@@ -31,7 +32,7 @@ def initialize():
             pytjapi.write(fd.fileno(), 0x36, 0)
 
             global TJ_ID
-            TJ_ID = id
+            TJ_ID = file_name[15:]
             break
     else:
         raise ValueError('Unable to find TigerJet Device')
