@@ -30,7 +30,7 @@ from select import select
 from contact_id import handshake
 from alarm import Alarm
 from alarm_config import AlarmConfig
-
+from notifications import notify
 
 def collect_alarm_codes(fd):
     logging.info("Collecting Alarm Codes")
@@ -197,6 +197,11 @@ def write_config_exit(config_path):
 
     sys.exit(0)
 
+def notification_test_exit():
+    stdout.write('Sending notification.\n')
+    notify('notification test')
+    stdout.write('Notification test complete, exiting.\n')
+    sys.exit(0)
 
 def main():
     parser = argparse.ArgumentParser(prog='alarmd')
@@ -214,6 +219,10 @@ def main():
                         action='store_true',
                         default=False,
                         help='Create new alarm config file, and exit.')
+    parser.add_argument('--notification-test',
+			action='store_true',
+			default=False,
+			help='Send a test notification, and exit.')
     args = parser.parse_args()
     if args.create_config:
         write_config_exit(args.config_path)
@@ -232,6 +241,10 @@ def main():
             sys.stdout if args.no_fork else None))
     context.signal_map = {signal.SIGTERM: sigcleanup_handler,
                           signal.SIGINT: sigcleanup_handler}
+
+    if args.notification_test:
+	notification_test_exit()
+
     with context:
         alarm_main_loop()
 
