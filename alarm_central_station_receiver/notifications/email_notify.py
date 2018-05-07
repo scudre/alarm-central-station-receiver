@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
-import time
 import multiprocessing
 import smtplib
 from email.mime.text import MIMEText
@@ -27,7 +26,7 @@ def create_message(events):
     in the message body as well.  When sending this email to an SMS bridge,
     sometimes the time that the SMS is received is well after the event occurred
     and there is no clear way to know when the message was actually sent.
-    """    
+    """
     messages = []
     timestamp = ''
     for event in events:
@@ -35,11 +34,11 @@ def create_message(events):
         desc = event.get('description')
         if not timestamp:
             timestamp = event.get('timestamp')
-            
+
         messages.append('%s: %s' % (rtype, desc))
 
     return '%s:\n%s' % (timestamp, '\n'.join(messages))
-            
+
 def send_email(events):
     logging.info("Sending Email...")
     username = AlarmConfig.get('EmailNotification', 'username')
@@ -61,7 +60,7 @@ def send_email(events):
     s = smtplib.SMTP(server, server_port)
     s.ehlo()
     if tls.lower() in ("yes", "true", "t", "1"):
-    	s.starttls()
+        s.starttls()
     s.ehlo()
     s.login(username, password)
     s.sendmail(username, [to_addr], msg.as_string())

@@ -22,7 +22,12 @@ from pyaudio import PyAudio, paContinue
 TJ_DEV_INDEX = -1
 
 
-class Handshake():
+class Handshake(object):
+    def __init__(self):
+        self.wf = ''
+        self.stream = ''
+        self.p = ''
+        
     def __enter__(self):
         """
         Initiate a contact id handshake with the alarm that has called the Rpi.

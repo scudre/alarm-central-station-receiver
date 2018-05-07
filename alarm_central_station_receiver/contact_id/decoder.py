@@ -13,9 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import logging
 import time
-from dsc import decode
+from dsc import digits_to_alarmreport
 
 def create_event(rtype, description, eid):
     return {
@@ -31,7 +30,7 @@ def decode(raw_events):
 
     for err, code in raw_events:
         if not err:
-            report_type, description = dsc.digits_to_alarmreport(code)
+            report_type, description = digits_to_alarmreport(code)
         else:
             report_type = 'U'
             if len(code) != 16:
@@ -40,10 +39,8 @@ def decode(raw_events):
             else:
                 description = \
                     'Checksum Mismatch: %s' % code
-
+    
         decoded_events.append(create_event(report_type,
                                            description,
-                                           code[7:10] + code[12:15])
-
-
+                                           code[7:10] + code[12:15]))
     return decoded_events

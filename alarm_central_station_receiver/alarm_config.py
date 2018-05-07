@@ -19,8 +19,7 @@ import os.path
 
 LOADED_CONFIG = {}
 
-
-class AlarmConfig:
+class AlarmConfig(object):
     @staticmethod
     def exists(path):
         return os.path.isfile(path)

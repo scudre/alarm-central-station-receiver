@@ -19,7 +19,6 @@ import argparse
 
 import logging
 import sys
-import time
 import shelve
 import signal
 import tigerjet
@@ -27,11 +26,11 @@ import tigerjet
 from os import geteuid
 from sys import stderr, stdout
 from select import select
-from contact_id import handshake
+from contact_id import handshake, decoder
 from alarm import Alarm
 from alarm_call import handle_alarm_calling
 from alarm_config import AlarmConfig
-from notifications import notify
+from notifications import notify, notify_test
 
 
 def init_logging():
@@ -77,14 +76,14 @@ def alarm_main_loop():
         while True:
             wait_for_alarm(alarmhid)
             raw_events = handle_alarm_calling(alarmhid, phone_number)
-            events = decode(raw_events)
+            events = decoder.decode(raw_events)
             update_alarm_events(events)
             notify(events)
 
     return 0
 
 
-def sigcleanup_handler(signum, frame):
+def sigcleanup_handler(signum, _):
     sig_name = next(v for v, k in signal.__dict__.iteritems() if k == signum)
     logging.info("Received %s, exiting" % sig_name)
     sys.exit(0)
@@ -135,7 +134,7 @@ def write_config_exit(config_path):
 
 def notification_test_exit():
     stdout.write('Sending notification.\n')
-    # XXX fix me notify('notification test')
+    notify_test()
     stdout.write('Notification test complete, exiting.\n')
     sys.exit(0)
 

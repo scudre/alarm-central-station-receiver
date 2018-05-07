@@ -13,15 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import logging
+
 import time
 # XXX Comment out for now
 #import RPi.GPIO as GPIO
 from json import dumps
 from collections import deque
-from contact_id import dsc
-from notifications import notify
-
 
 class Alarm(object):
     def __init__(self):
@@ -104,11 +101,11 @@ class Alarm(object):
         state = {'mode': self.alarm_mode,
                  'status': self.system_status,
                  'outstanding_events': outstanding_json,
-                 }
+                }
 
         return dumps(state)
 
-    def arm(self, mode='stay'):
+    def arm(self):
         if self.alarm_mode not in ['stay', 'away', 'arming']:
             self._trip_keyswitch()
             self.alarm_mode = 'arming'

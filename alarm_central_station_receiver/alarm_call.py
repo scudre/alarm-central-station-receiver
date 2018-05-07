@@ -16,7 +16,6 @@ limitations under the License.
 import logging
 from contact_id import handshake
 
-
 def collect_alarm_codes(fd):
     logging.info("Collecting Alarm Codes")
     code = ''
@@ -59,16 +58,16 @@ def validate_alarm_call_in(fd, expected):
 
     while off_hook:
         if digit != -1:
-            logging.debug("Digit %d" % digit)
+            logging.debug("Digit %d", digit)
             number = number[1:] + format(digit, 'x')
-            logging.debug("Number %s" % number)
+            logging.debug("Number %s", number)
 
         if number == expected:
             logging.info("Alarm Call In Received")
             break
 
         off_hook, digit = get_phone_status(fd)
-    logging.debug("Number %s" % number)
+    logging.debug("Number %s", number)
 
     if not off_hook:
         logging.info("Phone On The Hook")
