@@ -78,42 +78,13 @@ class Alarm(object):
                 # Lead In/Out as an alarm
                 self.outstanding[report_id] = entry
 
-    def add_new_events(self, codes):
-        curr_time = time.strftime("%b %d %I:%M:%S %p")
-        email_codes = []
-
-        for err, code in codes:
-            if not err:
-                report_type, description = dsc.digits_to_alarmreport(code)
-                email_codes.append('%s: %s' % (report_type, description))
-            else:
-                report_type = 'U'
-                if len(code) != 16:
-                    description = \
-                        'Leftover Bits: %s (len %d)' % (code, len(code))
-                else:
-                    description = \
-                        'Checksum Mismatch: %s' % code
-                email_codes.append(description)
-
-            new_entry = {'timestamp': curr_time,
-                         'type': report_type,
-                         'description': description,
-                         'id': code[7:10] + code[12:15],
-                         }
-
-            self.history.appendleft(new_entry)
-            self._update_alarm_mode(new_entry)
-            self._update_outstanding_events(new_entry)
+    def add_new_events(self, events):
+        for event in events:
+            self.history.appendleft(event)
+            self._update_alarm_mode(event)
+            self._update_outstanding_events(event)
 
         self._update_system_status()
-
-        if email_codes:
-            # Send notifications if any configured
-            logging.info("Home Alarm Calling:\n%s" % ', '.join(email_codes))
-            notify(email_codes)
-        else:
-            logging.info("Empty Code List!")
 
     def json_history(self, start_index, stop_index):
         hist_slice = []
@@ -169,6 +140,6 @@ class Alarm(object):
         to arm and disarm.
         """
         return None
-        #GPIO.setwarnings(False)
-        #GPIO.setmode(GPIO.BOARD)
+        # GPIO.setwarnings(False)
+        # GPIO.setmode(GPIO.BOARD)
         #GPIO.setup(15, GPIO.OUT)

@@ -110,7 +110,7 @@ def get_zone_name(sensor_code):
     return zone_name
 
 
-def digits_to_alarmreport(code):
+def decode(code):
     """
     Given a raw contact id DTMF string from a DSC alarm,
     return the alarm description and event type.

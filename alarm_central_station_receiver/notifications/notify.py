@@ -14,7 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from email_notify import send_email_async
+import logging
 
+def log_events(events):
+    if not events:
+        logging.info('Empty Code List!')
+    else:
+        messages = []
+        for event in events:
+            rtype = event.get('type')
+            desc = event.get('description')
+            messages.append('%s: %s' % (rtype, desc))
 
-def notify(message):
-    send_email_async(message)
+        logging.info("Home Alarm Calling:\n%s" % ', '.join(messages)
+
+                     
+def notify(events):
+    # List of notifications to pass events to
+    log_events(events)
+    send_email_async(events)
