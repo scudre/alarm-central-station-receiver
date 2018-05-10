@@ -26,9 +26,8 @@ import tigerjet
 from os import geteuid
 from sys import stderr, stdout
 from select import select
-from contact_id import handshake, decoder
+from contact_id import handshake, decoder, callup
 from alarm import Alarm
-from alarm_call import handle_alarm_calling
 from alarm_config import AlarmConfig
 from notifications import notify, notify_test
 
@@ -66,22 +65,6 @@ def wait_for_alarm(alarmhid):
         read, _, _ = select([alarmhid], [], [])
         if alarmhid not in read:
             logging.info('alarmhid not in select, ignoring call')
-
-
-def alarm_main_loop():
-    init_logging()
-    phone_number = AlarmConfig.get('AlarmSystem', 'phone_number')
-    with open(tigerjet.hidraw_path(), 'rb') as alarmhid:
-        logging.info("Ready, listening for alarms")
-        while True:
-            wait_for_alarm(alarmhid)
-            raw_events = handle_alarm_calling(alarmhid, phone_number)
-            events = decoder.decode(raw_events)
-            update_alarm_events(events)
-            notify(events)
-
-    return 0
-
 
 def sigcleanup_handler(signum, _):
     sig_name = next(v for v, k in signal.__dict__.iteritems() if k == signum)
@@ -137,6 +120,21 @@ def notification_test_exit():
     notify_test()
     stdout.write('Notification test complete, exiting.\n')
     sys.exit(0)
+
+    
+def alarm_main_loop():
+    init_logging()
+    phone_number = AlarmConfig.get('AlarmSystem', 'phone_number')
+    with open(tigerjet.hidraw_path(), 'rb') as alarmhid:
+        logging.info("Ready, listening for alarms")
+        while True:
+            wait_for_alarm(alarmhid)
+            raw_events = callup.handle_alarm_calling(alarmhid, phone_number)
+            events = decoder.decode(raw_events)
+            update_alarm_events(events)
+            notify(events)
+
+    return 0
 
 
 def main():
