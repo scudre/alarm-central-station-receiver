@@ -19,7 +19,6 @@ import argparse
 
 import logging
 import sys
-import time
 import shelve
 import signal
 import tigerjet
@@ -27,88 +26,10 @@ import tigerjet
 from os import geteuid
 from sys import stderr, stdout
 from select import select
-from contact_id import handshake
+from contact_id import handshake, decoder, callup
 from alarm import Alarm
 from alarm_config import AlarmConfig
-from notifications import notify
-
-def collect_alarm_codes(fd):
-    logging.info("Collecting Alarm Codes")
-    code = ''
-    checksum = 0
-    codes = []
-
-    # Play the alarm handshake to start getting the codes
-    with handshake.Handshake():
-        off_hook, digit = get_phone_status(fd)
-        while off_hook:
-            if digit == -1:
-                off_hook, digit = get_phone_status(fd)
-                continue
-
-            # 0 is treated as 10 in the checksum calculation
-            checksum += 10 if digit == 0 else digit
-            code += format(digit, 'x')
-            if len(code) == 16:
-                codes.append(((checksum % 15 != 0), code))
-                code = ''
-                checksum = 0
-
-            off_hook, digit = get_phone_status(fd)
-
-        logging.info("Alarm Hung Up")
-
-    if len(code) != 0:
-        # There are leftover bits
-        codes.append((True, code))
-
-    return codes
-
-
-def validate_alarm_call_in(fd, expected):
-    number = '000'
-    off_hook, digit = get_phone_status(fd)
-
-    if off_hook:
-        logging.info("Phone Off The Hook")
-
-    while off_hook:
-        if digit != -1:
-            logging.debug("Digit %d" % digit)
-            number = number[1:] + format(digit, 'x')
-            logging.debug("Number %s" % number)
-
-        if number == expected:
-            logging.info("Alarm Call In Received")
-            break
-
-        off_hook, digit = get_phone_status(fd)
-    logging.debug("Number %s" % number)
-
-    if not off_hook:
-        logging.info("Phone On The Hook")
-
-    return number == expected and off_hook
-
-
-def get_phone_status(fd):
-
-    # XXX for python 3 no need to have ORD, can directly read/write
-    # values as they are already in bytes
-    status = fd.read(2)
-
-    off_hook = ((ord(status[1]) & 0x80) == 0x80)
-    digit = ord(status[0])
-    if digit < 11:
-        digit = digit - 1
-
-    return (off_hook, digit)
-
-
-def handle_alarm_calling(alarm, fd, number):
-    if validate_alarm_call_in(fd, number):
-        codes = collect_alarm_codes(fd)
-        alarm.add_new_events(codes)
+from notifications import notify, notify_test
 
 
 def init_logging():
@@ -129,29 +50,23 @@ def init_logging():
     root_logger.addHandler(console)
 
 
-def alarm_main_loop():
-    init_logging()
-    phone_number = AlarmConfig.get('AlarmSystem', 'phone_number')
-    with open(tigerjet.hidraw_path(), 'rb') as alarmhid:
-        logging.info("Ready listening for alarms")
-
-        while True:
-            # read, write, error
-            read, _, _ = select([alarmhid], [], [])
-
-            alarm_config = shelve.open('/alarm_config')
-            alarm = alarm_config.get('alarm', Alarm())
-
-            if alarmhid in read:
-                handle_alarm_calling(alarm, alarmhid, phone_number)
-
-            alarm_config['alarm'] = alarm
-            alarm_config.close()
-
-    return 0
+def update_alarm_events(events):
+    alarm_config = shelve.open('/alarm_config')
+    alarm = alarm_config.get('alarm', Alarm())
+    alarm.add_new_events(events)
+    alarm_config['alarm'] = alarm
+    alarm_config.close()
 
 
-def sigcleanup_handler(signum, frame):
+def wait_for_alarm(alarmhid):
+    read = []
+    # read, write, error
+    while alarmhid not in read:
+        read, _, _ = select([alarmhid], [], [])
+        if alarmhid not in read:
+            logging.info('alarmhid not in select, ignoring call')
+
+def sigcleanup_handler(signum, _):
     sig_name = next(v for v, k in signal.__dict__.iteritems() if k == signum)
     logging.info("Received %s, exiting" % sig_name)
     sys.exit(0)
@@ -190,18 +105,37 @@ def write_config_exit(config_path):
     check_running_root()
 
     if not AlarmConfig.exists(config_path):
-        stdout.write('Writing configuration to %s and exiting.\n' % config_path)
+        stdout.write('Writing configuration to %s and exiting.\n' %
+                     config_path)
         AlarmConfig.create(config_path)
     else:
-        stdout.write('Configuration at %s already exists, skipping write\n' % config_path)
+        stdout.write(
+            'Configuration at %s already exists, skipping write\n' % config_path)
 
     sys.exit(0)
+
 
 def notification_test_exit():
     stdout.write('Sending notification.\n')
-    notify('notification test')
+    notify_test()
     stdout.write('Notification test complete, exiting.\n')
     sys.exit(0)
+
+    
+def alarm_main_loop():
+    init_logging()
+    phone_number = AlarmConfig.get('AlarmSystem', 'phone_number')
+    with open(tigerjet.hidraw_path(), 'rb') as alarmhid:
+        logging.info("Ready, listening for alarms")
+        while True:
+            wait_for_alarm(alarmhid)
+            raw_events = callup.handle_alarm_calling(alarmhid, phone_number)
+            events = decoder.decode(raw_events)
+            update_alarm_events(events)
+            notify(events)
+
+    return 0
+
 
 def main():
     parser = argparse.ArgumentParser(prog='alarmd')
@@ -220,9 +154,9 @@ def main():
                         default=False,
                         help='Create new alarm config file, and exit.')
     parser.add_argument('--notification-test',
-			action='store_true',
-			default=False,
-			help='Send a test notification, and exit.')
+                        action='store_true',
+                        default=False,
+                        help='Send a test notification, and exit.')
     args = parser.parse_args()
     if args.create_config:
         write_config_exit(args.config_path)
@@ -243,7 +177,7 @@ def main():
                           signal.SIGINT: sigcleanup_handler}
 
     if args.notification_test:
-	notification_test_exit()
+        notification_test_exit()
 
     with context:
         alarm_main_loop()

@@ -19,8 +19,7 @@ import os.path
 
 LOADED_CONFIG = {}
 
-
-class AlarmConfig:
+class AlarmConfig(object):
     @staticmethod
     def exists(path):
         return os.path.isfile(path)
@@ -57,7 +56,8 @@ class AlarmConfig:
 
         for keyword in email_keywords:
             if not config.get('EmailNotification', {}).get(keyword):
-                missing_config.append('[EmailNotification] Section: %s' % keyword)
+                missing_config.append(
+                    '[EmailNotification] Section: %s' % keyword)
 
         return missing_config
 

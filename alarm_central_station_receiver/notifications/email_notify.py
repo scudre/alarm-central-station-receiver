@@ -14,15 +14,32 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
-import time
 import multiprocessing
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from ..alarm_config import AlarmConfig
 
+def create_message(events):
+    """
+    Build the message body.  The first event's timestamp is included
+    in the message body as well.  When sending this email to an SMS bridge,
+    sometimes the time that the SMS is received is well after the event occurred
+    and there is no clear way to know when the message was actually sent.
+    """
+    messages = []
+    timestamp = ''
+    for event in events:
+        rtype = event.get('type')
+        desc = event.get('description')
+        if not timestamp:
+            timestamp = event.get('timestamp')
 
-def send_email(message):
+        messages.append('%s: %s' % (rtype, desc))
+
+    return '%s:\n%s' % (timestamp, '\n'.join(messages))
+
+def send_email(events):
     logging.info("Sending Email...")
     username = AlarmConfig.get('EmailNotification', 'username')
     password = AlarmConfig.get('EmailNotification', 'password')
@@ -36,14 +53,14 @@ def send_email(message):
     msg['From'] = username
     msg['To'] = to_addr
     msg['Subject'] = subject
-    body = "%s:\n%s" % (time.strftime("%b %d %I:%M:%S %p"), '\n'.join(message))
+    body = create_message(events)
     msg.attach(MIMEText(body, 'plain'))
     msg.attach(MIMEText(body, 'html'))
 
     s = smtplib.SMTP(server, server_port)
     s.ehlo()
     if tls.lower() in ("yes", "true", "t", "1"):
-    	s.starttls()
+        s.starttls()
     s.ehlo()
     s.login(username, password)
     s.sendmail(username, [to_addr], msg.as_string())
@@ -52,9 +69,10 @@ def send_email(message):
     logging.info("Email Send Complete")
 
 
-def send_email_async(message):
+def send_email_async(events):
     """
-    Send email asynchrnously
+    Send email asynchronously
     """
-    p = multiprocessing.Process(target=send_email, args=(message,))
-    p.start()
+    if events:
+        p = multiprocessing.Process(target=send_email, args=(events,))
+        p.start()
