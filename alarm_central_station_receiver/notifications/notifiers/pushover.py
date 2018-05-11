@@ -1,0 +1,46 @@
+"""
+Copyright (2018) Chris Scuderi
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+import logging
+from ...alarm_config import AlarmConfig
+
+def create_message(events):
+    """
+    Build the message body.  The first event's timestamp is included
+    in the message body as well.  When sending this email to an SMS bridge,
+    sometimes the time that the SMS is received is well after the event occurred
+    and there is no clear way to know when the message was actually sent.
+    """
+    messages = []
+    timestamp = ''
+    for event in events:
+        rtype = event.get('type')
+        desc = event.get('description')
+        if not timestamp:
+            timestamp = event.get('timestamp')
+
+        messages.append('%s: %s' % (rtype, desc))
+
+    return '%s:\n%s' % (timestamp, '\n'.join(messages))
+
+def notify(events):
+    if not events:
+        return
+    
+    logging.info("Sending pushover notification...")
+
+    # XXX my notification
+    
+    logging.info("Sending complete")

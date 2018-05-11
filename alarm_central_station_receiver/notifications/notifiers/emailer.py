@@ -14,11 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
-import multiprocessing
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from ..alarm_config import AlarmConfig
+from ...alarm_config import AlarmConfig
 
 def create_message(events):
     """
@@ -39,8 +38,11 @@ def create_message(events):
 
     return '%s:\n%s' % (timestamp, '\n'.join(messages))
 
-def send_email(events):
-    logging.info("Sending Email...")
+def notify(events):
+    if not events:
+        return
+    
+    logging.info("Sending email...")
     username = AlarmConfig.get('EmailNotification', 'username')
     password = AlarmConfig.get('EmailNotification', 'password')
     to_addr = AlarmConfig.get('EmailNotification', 'notification_email')
@@ -57,22 +59,15 @@ def send_email(events):
     msg.attach(MIMEText(body, 'plain'))
     msg.attach(MIMEText(body, 'html'))
 
-    s = smtplib.SMTP(server, server_port)
-    s.ehlo()
-    if tls.lower() in ("yes", "true", "t", "1"):
-        s.starttls()
-    s.ehlo()
-    s.login(username, password)
-    s.sendmail(username, [to_addr], msg.as_string())
-    s.quit()
-
-    logging.info("Email Send Complete")
-
-
-def send_email_async(events):
-    """
-    Send email asynchronously
-    """
-    if events:
-        p = multiprocessing.Process(target=send_email, args=(events,))
-        p.start()
+    try:
+        s = smtplib.SMTP(server, server_port)
+        s.ehlo()
+        if tls.lower() in ("yes", "true", "t", "1"):
+            s.starttls()
+        s.ehlo()
+        s.login(username, password)
+        s.sendmail(username, [to_addr], msg.as_string())
+        s.quit()
+        logging.info("Email send complete")
+    except smtplib.SMTPException as exc:
+        logging.error("Error sending email: %s", str(exc))
