@@ -15,8 +15,8 @@ limitations under the License.
 """
 import logging
 import time
-from email_notify import send_email_async
-
+from notifiers import emailer, pushover
+import multiprocessing
 
 def log_events(events):
     if not events:
@@ -46,10 +46,18 @@ def notify_test():
         }
         ]
 
-    notify(events)
-            
+    notify_async(events)
+
+def notify_async(events):
+    logging.info("Sending notifications...")
+    log_events(events)
+    emailer.notify(events)
+    pushover.notify(events)
         
 def notify(events):
-    # List of notifications to pass events to
-    log_events(events)
-    send_email_async(events)
+    """
+    Asynchronously send out configured notifications
+    """
+    notify_proc = multiprocessing.Process(target=notify_async, args=(events,))
+    notify_proc.start()
+               
