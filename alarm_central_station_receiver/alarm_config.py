@@ -19,6 +19,38 @@ import os.path
 
 LOADED_CONFIG = {}
 
+CONFIG_MAP = {
+    'AlarmSystem': {
+        'required': True,
+        'keys': {'phone_number': True}
+    },
+
+    'ZoneMapping': {'required': False},
+    'EmailNotification': {
+        'required': False,
+        'keys': {
+            'username': True,
+            'password': True,
+            'server_address': True,
+            'port': True,
+            'notification_email': True,
+            'notification_subject': True,
+            'tls': True
+        }
+    },
+
+    'PushoverNotification': {
+        'required': False,
+        'keys': {
+            'user': True,
+            'token': True,
+            'priority': False,
+            'device': False
+        }
+    },
+}
+
+
 class AlarmConfig(object):
     @staticmethod
     def exists(path):
@@ -43,21 +75,21 @@ class AlarmConfig(object):
     @staticmethod
     def validate(config):
         missing_config = []
-        if not config.get('AlarmSystem', {}).get('phone_number'):
-            missing_config.append('[AlarmSystem] Section: phone_number')
 
-        email_keywords = ['username',
-                          'password',
-                          'server_address',
-                          'port',
-                          'notification_email',
-                          'notification_subject',
-                          'tls']
+        for sec_name, section in CONFIG_MAP.iteritems():
+            optional = not section.get('required')
+            missing = not config.get(sec_name)
 
-        for keyword in email_keywords:
-            if not config.get('EmailNotification', {}).get(keyword):
-                missing_config.append(
-                    '[EmailNotification] Section: %s' % keyword)
+            # If an entire section is missing, and its an optional
+            # section, skip validation.
+            if optional and missing:
+                continue
+
+            for key, key_required in section.get('keys', {}).iteritems():
+                cfg_value = config.get(sec_name, {}).get(key, '')
+
+                if key_required and cfg_value == '':
+                    missing_config.append('[%s] Section: %s' % (sec_name, key))
 
         return missing_config
 

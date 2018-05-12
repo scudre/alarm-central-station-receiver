@@ -39,16 +39,17 @@ def init_logging():
         fmt='%(asctime)s alarmd[%(process)d]: [%(module)s.%(levelname)s] %(message)s',
         datefmt='%b %d %y %I:%M:%S %p')
 
+    console = logging.StreamHandler(stdout)
+    console.setLevel(logging.INFO)
+    console.setFormatter(formatter)
+    root_logger.addHandler(console)
+
     log_file = logging.FileHandler('/var/log/alarmd.log')
     log_file.setLevel(logging.INFO)
     log_file.setFormatter(formatter)
     root_logger.addHandler(log_file)
 
-    console = logging.StreamHandler(sys.stdout)
-    console.setLevel(logging.INFO)
-    console.setFormatter(formatter)
-    root_logger.addHandler(console)
-
+    return log_file.stream
 
 def update_alarm_events(events):
     alarm_config = shelve.open('/alarm_config')
@@ -80,50 +81,46 @@ def check_running_root():
 
 def create_or_check_required_config(path):
     if not AlarmConfig.exists(path):
-        stdout.write('Configuration missing, writing to %s.\n\n' % path)
+        logging.info('Configuration missing, writing to %s.\n\n' % path)
         AlarmConfig.create(path)
 
     AlarmConfig.load(path)
     missing_config = AlarmConfig.validate(AlarmConfig.get())
     if missing_config:
-        stderr.write(
-            'Error: The following required configuration is missing from %s\n\n' %
+        logging.error(
+            'The following required configuration is missing from %s\n\n' %
             path)
-        stderr.write('\n'.join(missing_config))
-        stderr.write('\n\nExiting\n\n')
+        logging.error('\n'.join(missing_config))
+        logging.error('\n\nExiting\n\n')
         sys.exit(-1)
 
 
 def initialize(config_path):
-    check_running_root()
     create_or_check_required_config(config_path)
     tigerjet.initialize()
     handshake.initialize()
 
 
 def write_config_exit(config_path):
-    check_running_root()
-
     if not AlarmConfig.exists(config_path):
-        stdout.write('Writing configuration to %s and exiting.\n' %
+        logging.info('Writing configuration to %s and exiting.\n' %
                      config_path)
         AlarmConfig.create(config_path)
     else:
-        stdout.write(
+        logging.info(
             'Configuration at %s already exists, skipping write\n' % config_path)
 
     sys.exit(0)
 
 
 def notification_test_exit():
-    stdout.write('Sending notification.\n')
+    logging.info('Sending notification.\n')
     notify_test()
-    stdout.write('Notification test complete, exiting.\n')
+    logging.info('Notification test complete, exiting.\n')
     sys.exit(0)
 
     
 def alarm_main_loop():
-    init_logging()
     phone_number = AlarmConfig.get('AlarmSystem', 'phone_number')
     with open(tigerjet.hidraw_path(), 'rb') as alarmhid:
         logging.info("Ready, listening for alarms")
@@ -158,28 +155,34 @@ def main():
                         default=False,
                         help='Send a test notification, and exit.')
     args = parser.parse_args()
+
+    check_running_root()
+    log_fd = init_logging()
+    
     if args.create_config:
         write_config_exit(args.config_path)
-
-    logging.info(
-        "Starting in %s mode" %
-        'no-fork' if args.no_fork else 'daemonized')
-    initialize(args.config_path)
-    context = daemon.DaemonContext(
-        detach_process=(
-            not args.no_fork),
-        pidfile=lockfile.FileLock('/var/run/alarmd.pid'),
-        stderr=(
-            sys.stderr if args.no_fork else None),
-        stdout=(
-            sys.stdout if args.no_fork else None))
-    context.signal_map = {signal.SIGTERM: sigcleanup_handler,
-                          signal.SIGINT: sigcleanup_handler}
 
     if args.notification_test:
         notification_test_exit()
 
+    initialize(args.config_path)    
+
+    context = daemon.DaemonContext(
+        files_preserve = [log_fd],
+        detach_process=(
+            not args.no_fork),
+        pidfile=lockfile.FileLock('/var/run/alarmd.pid'),
+        stderr=(
+            stderr if args.no_fork else None),
+        stdout=(
+            stdout if args.no_fork else None))
+    context.signal_map = {signal.SIGTERM: sigcleanup_handler,
+                          signal.SIGINT: sigcleanup_handler}
+
     with context:
+        logging.info(
+            "Starting in %s mode",
+            'no-fork' if args.no_fork else 'daemonized')
         alarm_main_loop()
 
 

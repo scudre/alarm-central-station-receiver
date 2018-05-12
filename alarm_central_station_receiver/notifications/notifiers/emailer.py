@@ -41,6 +41,9 @@ def create_message(events):
 def notify(events):
     if not events:
         return
+
+    if not AlarmConfig.get('EmailNotification'):
+        return    
     
     logging.info("Sending email...")
     username = AlarmConfig.get('EmailNotification', 'username')
