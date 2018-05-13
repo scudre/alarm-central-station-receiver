@@ -20,6 +20,7 @@ import time
 from json import dumps
 from collections import deque
 
+
 class Alarm(object):
     def __init__(self):
         self.alarm_mode = "stay"
@@ -101,7 +102,7 @@ class Alarm(object):
         state = {'mode': self.alarm_mode,
                  'status': self.system_status,
                  'outstanding_events': outstanding_json,
-                }
+                 }
 
         return dumps(state)
 

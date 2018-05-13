@@ -19,6 +19,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from ...alarm_config import AlarmConfig
 
+
 def create_message(events):
     """
     Build the message body.  The first event's timestamp is included
@@ -38,13 +39,14 @@ def create_message(events):
 
     return '%s:\n%s' % (timestamp, '\n'.join(messages))
 
+
 def notify(events):
     if not events:
         return
 
     if not AlarmConfig.get('EmailNotification'):
-        return    
-    
+        return
+
     logging.info("Sending email...")
     username = AlarmConfig.get('EmailNotification', 'username')
     password = AlarmConfig.get('EmailNotification', 'password')

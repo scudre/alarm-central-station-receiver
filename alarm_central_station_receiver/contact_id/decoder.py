@@ -16,15 +16,16 @@ limitations under the License.
 import time
 from dsc import digits_to_alarmreport
 
+
 def create_event(rtype, description, eid):
     return {
-        'timestamp' : time.strftime("%b %d %I:%M:%S %p"),
-        'type' : rtype,
-        'description' : description,
-        'id' : eid,
-        }
+        'timestamp': time.strftime("%b %d %I:%M:%S %p"),
+        'type': rtype,
+        'description': description,
+        'id': eid,
+    }
 
-    
+
 def decode(raw_events):
     decoded_events = []
 
@@ -39,7 +40,7 @@ def decode(raw_events):
             else:
                 description = \
                     'Checksum Mismatch: %s' % code
-    
+
         decoded_events.append(create_event(report_type,
                                            description,
                                            code[7:10] + code[12:15]))

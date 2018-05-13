@@ -53,7 +53,7 @@ def notify(events):
         return
 
     if not AlarmConfig.get('PushoverNotification'):
-        return    
+        return
 
     logging.info("Sending pushover notification...")
 

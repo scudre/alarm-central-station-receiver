@@ -27,7 +27,7 @@ class Handshake(object):
         self.wf = ''
         self.stream = ''
         self.p = ''
-        
+
     def __enter__(self):
         """
         Initiate a contact id handshake with the alarm that has called the Rpi.

@@ -16,6 +16,7 @@ limitations under the License.
 import logging
 import handshake
 
+
 def collect_alarm_codes(fd):
     logging.info("Collecting Alarm Codes")
     code = ''

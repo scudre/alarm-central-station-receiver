@@ -51,6 +51,7 @@ def init_logging():
 
     return log_file.stream
 
+
 def update_alarm_events(events):
     alarm_config = shelve.open('/alarm_config')
     alarm = alarm_config.get('alarm', Alarm())
@@ -66,6 +67,7 @@ def wait_for_alarm(alarmhid):
         read, _, _ = select([alarmhid], [], [])
         if alarmhid not in read:
             logging.info('alarmhid not in select, ignoring call')
+
 
 def sigcleanup_handler(signum, _):
     sig_name = next(v for v, k in signal.__dict__.iteritems() if k == signum)
@@ -119,7 +121,7 @@ def notification_test_exit():
     logging.info('Notification test complete, exiting.\n')
     sys.exit(0)
 
-    
+
 def alarm_main_loop():
     phone_number = AlarmConfig.get('AlarmSystem', 'phone_number')
     with open(tigerjet.hidraw_path(), 'rb') as alarmhid:
@@ -158,17 +160,17 @@ def main():
 
     check_running_root()
     log_fd = init_logging()
-    
+
     if args.create_config:
         write_config_exit(args.config_path)
 
     if args.notification_test:
         notification_test_exit()
 
-    initialize(args.config_path)    
+    initialize(args.config_path)
 
     context = daemon.DaemonContext(
-        files_preserve = [log_fd],
+        files_preserve=[log_fd],
         detach_process=(
             not args.no_fork),
         pidfile=lockfile.FileLock('/var/run/alarmd.pid'),

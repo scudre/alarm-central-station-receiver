@@ -18,6 +18,7 @@ import time
 from notifiers import emailer, pushover
 import multiprocessing
 
+
 def log_events(events):
     if not events:
         logging.info('Empty Code List!')
@@ -30,34 +31,36 @@ def log_events(events):
 
         logging.info("Home Alarm Calling:\n%s", ', '.join(messages))
 
+
 def notify_test():
     events = [
         {
-            'timestamp' : time.strftime("%b %d %I:%M:%S %p"),
-            'type' : 'Test',
-            'description' : 'This is test event #1',
-            'id' : '1'
+            'timestamp': time.strftime("%b %d %I:%M:%S %p"),
+            'type': 'Test',
+            'description': 'This is test event #1',
+            'id': '1'
         },
         {
-            'timestamp' : time.strftime("%b %d %I:%M:%S %p"),
-            'type' : 'Test',
-            'description' : 'This is test event #2',
-            'id' : '2'
+            'timestamp': time.strftime("%b %d %I:%M:%S %p"),
+            'type': 'Test',
+            'description': 'This is test event #2',
+            'id': '2'
         }
-        ]
+    ]
 
     notify_async(events)
+
 
 def notify_async(events):
     logging.info("Sending notifications...")
     log_events(events)
     emailer.notify(events)
     pushover.notify(events)
-        
+
+
 def notify(events):
     """
     Asynchronously send out configured notifications
     """
     notify_proc = multiprocessing.Process(target=notify_async, args=(events,))
     notify_proc.start()
-               
