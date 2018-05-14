@@ -64,3 +64,4 @@ def notify(events):
     """
     notify_proc = multiprocessing.Process(target=notify_async, args=(events,))
     notify_proc.start()
+    notify_proc.join()
