@@ -13,131 +13,169 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+import logging
 import time
-# XXX Comment out for now
-#import RPi.GPIO as GPIO
-from json import dumps
-from collections import deque
+from json import load, dump
+import os.path
+from os import remove
+from shutil import move
+
+from singleton import Singleton
+from alarm_config import AlarmConfig
 
 
-class Alarm(object):
+class AlarmSystem(Singleton):
+    @staticmethod
+    def _trip_keyswitch():
+        """
+        This pin is connected to an I/O port on the PC9155 alarm.
+        The I/O port is configured in the PC9155 as a 'temporary
+        keyswitch'. Toggling this I/O port triggers the alarm
+        to arm and disarm.
+        """
+        RPi.GPIO.output(15, not GPIO.input(15))
+        time.sleep(2)
+        RPi.GPIO.output(15, not GPIO.input(15))
+
+    @staticmethod
+    def _initialize_rpi_gpio():
+        """
+        This pin is connected to an I/O port on the PC9155 alarm.
+        The I/O port is configured in the PC9155 as a 'temporary
+        keyswitch'. Toggling this I/O port triggers the alarm
+        to arm and disarm.
+        """
+        RPi.GPIO.setwarnings(False)
+        RPi.GPIO.setmode(GPIO.BOARD)
+        RPi.GPIO.setup(15, GPIO.OUT)
+
     def __init__(self):
-        self.alarm_mode = "stay"
-        self.system_status = "ok"
-        self.history = deque()
-        self.outstanding = {}
-        # XXX gracefully handle if someone does not have a raspberry pi
-        # self._initialize_rpi_gpio()
+        self.alarm = AlarmHistory()
+        if AlarmConfig.get('AlarmSystem', 'alarmd_arm_disarm'):
+            import RPi
+            self._initialize_rpi_gpio()
 
-    def _update_system_status(self):
+    def arm(self):
+        if self.alarm.arm_status in ['disarmed', 'disarming']:
+            self._trip_keyswitch()
+            self.alarm.arm_status = 'arming'
+
+    def disarm(self):
+        if self.alarm.arm_status in ['arming', 'armed']:
+            self._trip_keyswitch()
+
+            # If the system wasn't fully armed, there won't be an event
+            # from the alarm indicating arm/disrm
+            if self.alarm.arm_status == 'arming':
+                self.alarm.arm_status = 'disarmed'
+            else:
+                self.alarm.arm_status = 'disarming'
+
+
+class AlarmHistory(Singleton):
+    def __getattr__(self, attr):
+        return self._datastore.get(attr)
+
+    def __setattr__(self, attr, value):
+        attributes = [
+            'arm_status', 'arm_status_time', 'history', 'system_status', 'active_events'
+        ]
+
+        if attr in attributes:
+            self._datastore[attr] = value
+        else:
+            super(AlarmHistory, self).__setattr__(attr, value)
+
+    def __init__(self):
+        self.datastore_path = AlarmConfig.get('AlarmSystem', 'data_file')
+        self.datastore_path = 'test'
+        if not self.load_data():
+            self.arm_status = 'disarmed'
+            self.arm_status_time = 0
+            self.system_status = 'ok'
+            self.history = []
+            self.active_events = {}
+
+    def load_data(self):
+        """
+        returns True if data loaded from disk, otherwise this is a new
+        datafile to initialize
+        """
+        try:
+            print self.datastore_path
+            with open(self.datastore_path, 'r') as file_desc:
+                self._datastore = load(file_desc)
+                return True
+        except (IOError, ValueError):
+            self._datastore = {}
+            return False
+
+    def save_data(self):
+        try:
+            tmp_path = '.'.join([self.datastore_path, 'tmp'])
+            with open(tmp_path, 'w') as file_desc:
+                dump(self._datastore, file_desc)
+
+            move(tmp_path, self.datastore_path)
+        except (IOError, OSError) as exc:
+            logging.error('Unable to save alarm data: %s', str(exc))
+            if os.path.isfile(tmp_path):
+                remove(tmp_path)
+
+    def update_system_status(self):
         """
         Updates system status to be either: ok, alarm, or trouble
         depending on the current outstanding events in the
         `self.outstanding` list.
         """
-        self.system_status = 'ok'
-        for entry in self.outstanding.itervalues():
-            if entry['type'] == 'A':
-                self.system_status = 'alarm'
-                break
+        event_types = [item['type']
+                       for item in self.active_events.itervalues()]
+        if 'A' in event_types:
+            self.system_status = 'alarm'
+        elif 'MA' in event_types or 'T' in event_types:
+            self.system_status = 'trouble'
+        else:
+            self.system_status = 'ok'
 
-            if entry['type'] == 'MA' or entry['type'] == 'T':
-                self.system_status = 'trouble'
-
-    def _update_alarm_mode(self, entry):
+    def update_arm_status(self, event):
         """
-        Updates alarm mode to be either 'disarmed' or 'stay' depending on
+        Updates alarm mode to be either 'disarmed' or 'armed' depending on
         whether an Open or Close event has been received.
         """
-        report_type = entry['type']
-        if report_type == 'O':
-            self.alarm_mode = 'disarmed'
-        elif report_type == 'C':
-            self.alarm_mode = 'stay'
+        report_type = event['type']
+        timestamp = event['timestamp']
+        if report_type in ['O', 'C'] and timestamp > self.arm_status_time:
+            self.arm_status_time = timestamp
+            if report_type == 'O':
+                self.arm_status = 'disarmed'
+            else:
+                self.arm_status = 'armed'
 
-    def _update_outstanding_events(self, entry):
+    def update_active_events(self, event):
         """
-        For the given `entry` if applicable either add it or remove
-        it from the `self.outstanding` list.
+        For the given `event` if applicable either add it or remove
+        it from the `self.active_events` list.
         """
-        report_type = entry['type']
-        report_id = entry['id']
+        report_type = event['type']
+        report_id = event['id']
+
+        # Events to skip tracking.  Opening/Closings are tracked in arm_status, and
+        # U is for unknown events which we don't know what to do with
+        ignore_list = ['O', 'C', 'U']
+        if not report_type or report_type in ignore_list:
+            return
+
         if report_type == 'R':
-            # Restoral, remove any matching reports from
-            # the outstanding event list
-            self.outstanding.pop(report_id, None)
-        elif report_type and report_type not in ['O', 'C', 'U']:
-            # Opening/Closings are treated separately, dont add them
-            # to the outstanding list
-
-            if report_id not in ['627000', '628000', '411000', '412000']:
-                # Finally, skip listing the DLS/Installer
-                # Lead In/Out as an alarm
-                self.outstanding[report_id] = entry
+            # Restoral, clear any matching events
+            self.active_events.pop(report_id, None)
+        else:
+            self.active_events[report_id] = event
 
     def add_new_events(self, events):
         for event in events:
-            self.history.appendleft(event)
-            self._update_alarm_mode(event)
-            self._update_outstanding_events(event)
+            self.history.append(event)
+            self.update_arm_status(event)
+            self.update_active_events(event)
 
-        self._update_system_status()
-
-    def json_history(self, start_index, stop_index):
-        hist_slice = []
-        length = len(self.history)
-
-        if length >= start_index:
-            # XXX enumerate func?
-            idx = max(start_index, 0)
-            while idx < min(stop_index, length):
-                hist_slice.append(self.history[idx])
-                idx += 1
-
-        return dumps(hist_slice)
-
-    def json_state(self):
-        outstanding_json = [entry for entry in self.outstanding.itervalues()]
-        state = {'mode': self.alarm_mode,
-                 'status': self.system_status,
-                 'outstanding_events': outstanding_json,
-                 }
-
-        return dumps(state)
-
-    def arm(self):
-        if self.alarm_mode not in ['stay', 'away', 'arming']:
-            self._trip_keyswitch()
-            self.alarm_mode = 'arming'
-
-    def disarm(self):
-        if self.alarm_mode not in ['disarmed', 'disarming']:
-            self._trip_keyswitch()
-            if self.alarm_mode == 'arming':
-                self.alarm_mode = 'disarmed'
-            else:
-                self.alarm_mode = 'disarming'
-
-    def _trip_keyswitch(self):
-        """
-        This pin is connected to an I/O port on the PC9155 alarm.
-        The I/O port is configured in the PC9155 as a 'temporary
-        keyswitch'. Toggling this I/O port triggers the alarm
-        to arm and disarm.
-        """
-        #GPIO.output(15, not GPIO.input(15))
-        time.sleep(2)
-        #GPIO.output(15, not GPIO.input(15))
-
-    def _initialize_rpi_gpio(self):
-        """
-        This pin is connected to an I/O port on the PC9155 alarm.
-        The I/O port is configured in the PC9155 as a 'temporary
-        keyswitch'. Toggling this I/O port triggers the alarm
-        to arm and disarm.
-        """
-        return None
-        # GPIO.setwarnings(False)
-        # GPIO.setmode(GPIO.BOARD)
-        #GPIO.setup(15, GPIO.OUT)
+        self.update_system_status()
+        self.save_data()

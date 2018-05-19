@@ -19,7 +19,6 @@ import argparse
 
 import logging
 import sys
-import shelve
 import signal
 import tigerjet
 
@@ -27,7 +26,7 @@ from os import geteuid
 from sys import stderr, stdout
 from select import select
 from contact_id import handshake, decoder, callup
-from alarm import Alarm
+from alarm import AlarmHistory, AlarmSystem
 from alarm_config import AlarmConfig
 from notifications import notify, notify_test
 
@@ -50,14 +49,6 @@ def init_logging():
     root_logger.addHandler(log_file)
 
     return log_file.stream
-
-
-def update_alarm_events(events):
-    alarm_config = shelve.open('/alarm_config')
-    alarm = alarm_config.get('alarm', Alarm())
-    alarm.add_new_events(events)
-    alarm_config['alarm'] = alarm
-    alarm_config.close()
 
 
 def wait_for_alarm(alarmhid):
@@ -124,13 +115,15 @@ def notification_test_exit():
 
 def alarm_main_loop():
     phone_number = AlarmConfig.get('AlarmSystem', 'phone_number')
+    alarm_history = AlarmHistory()
+
     with open(tigerjet.hidraw_path(), 'rb') as alarmhid:
         logging.info("Ready, listening for alarms")
         while True:
             wait_for_alarm(alarmhid)
             raw_events = callup.handle_alarm_calling(alarmhid, phone_number)
             events = decoder.decode(raw_events)
-            update_alarm_events(events)
+            alarm_history.add_new_events(events)
             notify(events)
 
     return 0
