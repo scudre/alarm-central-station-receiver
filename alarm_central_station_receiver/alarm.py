@@ -55,21 +55,38 @@ class AlarmSystem(Singleton):
             import RPi
             self._initialize_rpi_gpio()
 
-    def arm(self):
-        if self.alarm.arm_status in ['disarmed', 'disarming']:
-            self._trip_keyswitch()
-            self.alarm.arm_status = 'arming'
+    def arm(self, auto_arm):
+        if self.alarm.arm_status in ['armed', 'arming']:
+            logging.info('System already %s, ignoring request',
+                         self.alarm.arm_status)
+            return
 
-    def disarm(self):
-        if self.alarm.arm_status in ['arming', 'armed']:
-            self._trip_keyswitch()
+        logging.info('Arming system%s...',
+                     ' in auto mode' if auto_arm else '')
+        self._trip_keyswitch()
+        self.alarm.arm_status = 'arming'
+        self.alarm.auto_arm = auto_arm
 
-            # If the system wasn't fully armed, there won't be an event
-            # from the alarm indicating arm/disrm
-            if self.alarm.arm_status == 'arming':
-                self.alarm.arm_status = 'disarmed'
-            else:
-                self.alarm.arm_status = 'disarming'
+    def disarm(self, auto_arm):
+        if self.alarm.arm_status in ['disarming', 'disarmed']:
+            logging.info('System already %s, ignoring request',
+                         self.alarm.arm_status)
+            return
+
+        if auto_arm and not self.alarm.auto_arm:
+            logging.info('System manually armed, skipping auto disarm')
+            return
+
+        logging.info('Disarming system...')
+        self._trip_keyswitch()
+
+        # If the system wasn't fully armed, there won't be an event
+        # from the alarm indicating arm/disrm
+        self.alarm.auto_arm = False
+        if self.alarm.arm_status == 'arming':
+            self.alarm.arm_status = 'disarmed'
+        else:
+            self.alarm.arm_status = 'disarming'
 
 
 class AlarmHistory(Singleton):
@@ -78,7 +95,7 @@ class AlarmHistory(Singleton):
 
     def __setattr__(self, attr, value):
         attributes = [
-            'arm_status', 'arm_status_time', 'history', 'system_status', 'active_events'
+            'arm_status', 'arm_status_time', 'auto_arm', 'history', 'system_status', 'active_events'
         ]
 
         if attr in attributes:
@@ -92,6 +109,7 @@ class AlarmHistory(Singleton):
         if not self.load_data():
             self.arm_status = 'disarmed'
             self.arm_status_time = 0
+            self.auto_arm = False
             self.system_status = 'ok'
             self.history = []
             self.active_events = {}
@@ -148,6 +166,7 @@ class AlarmHistory(Singleton):
             self.arm_status_time = timestamp
             if report_type == 'O':
                 self.arm_status = 'disarmed'
+                self.auto_arm = False
             else:
                 self.arm_status = 'armed'
 

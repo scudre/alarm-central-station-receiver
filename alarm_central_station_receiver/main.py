@@ -20,11 +20,15 @@ import argparse
 import logging
 import sys
 import signal
+import socket
+
 import tigerjet
 
 from os import geteuid
 from sys import stderr, stdout
 from select import select
+
+import json_ipc
 from contact_id import handshake, decoder, callup
 from alarm import AlarmHistory, AlarmSystem
 from alarm_config import AlarmConfig
@@ -51,18 +55,9 @@ def init_logging():
     return log_file.stream
 
 
-def wait_for_alarm(alarmhid):
-    read = []
-    # read, write, error
-    while alarmhid not in read:
-        read, _, _ = select([alarmhid], [], [])
-        if alarmhid not in read:
-            logging.info('alarmhid not in select, ignoring call')
-
-
 def sigcleanup_handler(signum, _):
     sig_name = next(v for v, k in signal.__dict__.iteritems() if k == signum)
-    logging.info("Received %s, exiting" % sig_name)
+    logging.info("Received %s, exiting", sig_name)
     sys.exit(0)
 
 
@@ -74,15 +69,14 @@ def check_running_root():
 
 def create_or_check_required_config(path):
     if not AlarmConfig.exists(path):
-        logging.info('Configuration missing, writing to %s.\n\n' % path)
+        logging.info('Configuration missing, writing to %s.\n\n', path)
         AlarmConfig.create(path)
 
     AlarmConfig.load(path)
     missing_config = AlarmConfig.validate(AlarmConfig.get())
     if missing_config:
         logging.error(
-            'The following required configuration is missing from %s\n\n' %
-            path)
+            'The following required configuration is missing from %s\n\n', path)
         logging.error('\n'.join(missing_config))
         logging.error('\n\nExiting\n\n')
         sys.exit(-1)
@@ -96,12 +90,12 @@ def initialize(config_path):
 
 def write_config_exit(config_path):
     if not AlarmConfig.exists(config_path):
-        logging.info('Writing configuration to %s and exiting.\n' %
+        logging.info('Writing configuration to %s and exiting.\n',
                      config_path)
         AlarmConfig.create(config_path)
     else:
         logging.info(
-            'Configuration at %s already exists, skipping write\n' % config_path)
+            'Configuration at %s already exists, skipping write\n', config_path)
 
     sys.exit(0)
 
@@ -113,18 +107,51 @@ def notification_test_exit():
     sys.exit(0)
 
 
+def process_alarm_event(alarmhid, phone_number, alarm_history):
+    raw_events = callup.handle_alarm_calling(alarmhid, phone_number)
+    events = decoder.decode(raw_events)
+    alarm_history.add_new_events(events)
+    notify(events)
+
+
+def process_sock_request(sockfd):
+    try:
+        conn, _ = sockfd.accept()
+        conn.settimeout(20)
+        msg = json_ipc.recv(conn)
+        command = msg.get('command')
+        auto_arm = True if 'auto' in command else False
+        if command in ['arm', 'auto-arm']:
+            AlarmSystem().arm(auto_arm)
+            rsp = {'error': False}
+        elif command in ['disarm', 'auto-disarm']:
+            AlarmSystem().disarm(auto_arm)
+            rsp = {'error': False}
+        else:
+            rsp = {'error': 'Invalid command %s' % command}
+
+        json_ipc.send(conn, rsp)
+        conn.close()
+
+    except socket.timeout:
+        logging.error("Timed out receiving data from client")
+
+
 def alarm_main_loop():
     phone_number = AlarmConfig.get('AlarmSystem', 'phone_number')
     alarm_history = AlarmHistory()
 
     with open(tigerjet.hidraw_path(), 'rb') as alarmhid:
-        logging.info("Ready, listening for alarms")
-        while True:
-            wait_for_alarm(alarmhid)
-            raw_events = callup.handle_alarm_calling(alarmhid, phone_number)
-            events = decoder.decode(raw_events)
-            alarm_history.add_new_events(events)
-            notify(events)
+        with json_ipc.ServerSock() as sockfd:
+            logging.info("Ready, listening for alarms")
+            while True:
+                read = []
+                read, _, _ = select([alarmhid, sockfd], [], [])
+                if alarmhid in read:
+                    process_alarm_event(alarmhid, phone_number, alarm_history)
+
+                if sockfd in read:
+                    process_sock_request(sockfd)
 
     return 0
 
