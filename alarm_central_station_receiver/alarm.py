@@ -23,6 +23,11 @@ from shutil import move
 from singleton import Singleton
 from alarm_config import AlarmConfig
 
+try:
+    import RPi.GPIO as GPIO
+except RuntimeError:
+    print("Error importing RPi.GPIO!  This is probably because you need superuser privileges.  You can achieve this by using 'sudo' to run your script")
+
 
 class AlarmSystem(Singleton):
     @staticmethod
@@ -33,9 +38,9 @@ class AlarmSystem(Singleton):
         keyswitch'. Toggling this I/O port triggers the alarm
         to arm and disarm.
         """
-        RPi.GPIO.output(15, not GPIO.input(15))
+        GPIO.output(15, not GPIO.input(15))
         time.sleep(2)
-        RPi.GPIO.output(15, not GPIO.input(15))
+        GPIO.output(15, not GPIO.input(15))
 
     @staticmethod
     def _initialize_rpi_gpio():
@@ -45,14 +50,14 @@ class AlarmSystem(Singleton):
         keyswitch'. Toggling this I/O port triggers the alarm
         to arm and disarm.
         """
-        RPi.GPIO.setwarnings(False)
-        RPi.GPIO.setmode(GPIO.BOARD)
-        RPi.GPIO.setup(15, GPIO.OUT)
+        GPIO.setwarnings(False)
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(15, GPIO.OUT)
 
     def __init__(self):
         self.alarm = AlarmHistory()
-        if AlarmConfig.get('AlarmSystem', 'alarmd_arm_disarm'):
-            import RPi
+        self.supported = AlarmConfig.get('AlarmSystem', 'alarmd_arm_disarm')
+        if self.supported:
             self._initialize_rpi_gpio()
 
     def arm(self, auto_arm):
@@ -66,6 +71,7 @@ class AlarmSystem(Singleton):
         self._trip_keyswitch()
         self.alarm.arm_status = 'arming'
         self.alarm.auto_arm = auto_arm
+        self.alarm.save_data()
 
     def disarm(self, auto_arm):
         if self.alarm.arm_status in ['disarming', 'disarmed']:
@@ -88,8 +94,12 @@ class AlarmSystem(Singleton):
         else:
             self.alarm.arm_status = 'disarming'
 
+        self.alarm.save_data()
+
 
 class AlarmHistory(Singleton):
+    _inited = False
+
     def __getattr__(self, attr):
         return self._datastore.get(attr)
 
@@ -104,8 +114,10 @@ class AlarmHistory(Singleton):
             super(AlarmHistory, self).__setattr__(attr, value)
 
     def __init__(self):
+        if self.__class__._inited:
+            return
+
         self.datastore_path = AlarmConfig.get('AlarmSystem', 'data_file')
-        self.datastore_path = 'test'
         if not self.load_data():
             self.arm_status = 'disarmed'
             self.arm_status_time = 0
@@ -114,13 +126,15 @@ class AlarmHistory(Singleton):
             self.history = []
             self.active_events = {}
 
+        self.__class__._inited = True
+
     def load_data(self):
         """
         returns True if data loaded from disk, otherwise this is a new
         datafile to initialize
         """
         try:
-            print self.datastore_path
+            logging.info('Loading config from %s', self.datastore_path)
             with open(self.datastore_path, 'r') as file_desc:
                 self._datastore = load(file_desc)
                 return True
@@ -130,6 +144,7 @@ class AlarmHistory(Singleton):
 
     def save_data(self):
         try:
+            logging.info('Saving config to %s', self.datastore_path)
             tmp_path = '.'.join([self.datastore_path, 'tmp'])
             with open(tmp_path, 'w') as file_desc:
                 dump(self._datastore, file_desc)

@@ -114,7 +114,7 @@ def process_alarm_event(alarmhid, phone_number, alarm_history):
     notify(events)
 
 
-def process_sock_request(sockfd):
+def process_sock_request(sockfd, alarm_system):
     try:
         conn, _ = sockfd.accept()
         conn.settimeout(20)
@@ -122,10 +122,10 @@ def process_sock_request(sockfd):
         command = msg.get('command')
         auto_arm = True if 'auto' in command else False
         if command in ['arm', 'auto-arm']:
-            AlarmSystem().arm(auto_arm)
+            alarm_system.arm(auto_arm)
             rsp = {'error': False}
         elif command in ['disarm', 'auto-disarm']:
-            AlarmSystem().disarm(auto_arm)
+            alarm_system.disarm(auto_arm)
             rsp = {'error': False}
         else:
             rsp = {'error': 'Invalid command %s' % command}
@@ -140,6 +140,7 @@ def process_sock_request(sockfd):
 def alarm_main_loop():
     phone_number = AlarmConfig.get('AlarmSystem', 'phone_number')
     alarm_history = AlarmHistory()
+    alarm_system = AlarmSystem()
 
     with open(tigerjet.hidraw_path(), 'rb') as alarmhid:
         with json_ipc.ServerSock() as sockfd:
@@ -151,7 +152,7 @@ def alarm_main_loop():
                     process_alarm_event(alarmhid, phone_number, alarm_history)
 
                 if sockfd in read:
-                    process_sock_request(sockfd)
+                    process_sock_request(sockfd, alarm_system)
 
     return 0
 
