@@ -15,10 +15,12 @@ limitations under the License.
 """
 import logging
 import time
-from json import load, dump
 import os.path
+
+from json import load, dump
 from os import remove
 from shutil import move
+from sys import stderr
 
 from singleton import Singleton
 from alarm_config import AlarmConfig
@@ -26,24 +28,32 @@ from alarm_config import AlarmConfig
 try:
     import RPi.GPIO as GPIO
 except RuntimeError:
-    print("Error importing RPi.GPIO!  This is probably because you need superuser privileges.  You can achieve this by using 'sudo' to run your script")
+    GPIO = None
 
 
 class AlarmSystem(Singleton):
-    @staticmethod
-    def _trip_keyswitch():
+    def valid_setup(self):
+        if not self.pin:
+            return False
+
+        if not GPIO:
+            logging.error('Python package RPi.GPIO must be installed to arm/disarm via RaspberryPi')
+            return False
+
+        return True
+
+    def _trip_keyswitch(self):
         """
         This pin is connected to an I/O port on the PC9155 alarm.
         The I/O port is configured in the PC9155 as a 'temporary
         keyswitch'. Toggling this I/O port triggers the alarm
         to arm and disarm.
         """
-        GPIO.output(15, not GPIO.input(15))
+        GPIO.output(self.pin, not GPIO.input(self.pin))
         time.sleep(2)
-        GPIO.output(15, not GPIO.input(15))
+        GPIO.output(self.pin, not GPIO.input(self.pin))
 
-    @staticmethod
-    def _initialize_rpi_gpio():
+    def _initialize_rpi_gpio(self):
         """
         This pin is connected to an I/O port on the PC9155 alarm.
         The I/O port is configured in the PC9155 as a 'temporary
@@ -52,15 +62,20 @@ class AlarmSystem(Singleton):
         """
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(15, GPIO.OUT)
+        GPIO.setup(self.pin, GPIO.OUT)
 
     def __init__(self):
+        self.pin = AlarmConfig.get('RpiArmDisarm', 'gpio_pin')
+        if not self.valid_setup():
+            return
+
         self.alarm = AlarmHistory()
-        self.supported = AlarmConfig.get('AlarmSystem', 'alarmd_arm_disarm')
-        if self.supported:
-            self._initialize_rpi_gpio()
+        self._initialize_rpi_gpio()
 
     def arm(self, auto_arm):
+        if not self.valid_setup():
+            return
+
         if self.alarm.arm_status in ['armed', 'arming']:
             logging.info('System already %s, ignoring request',
                          self.alarm.arm_status)
@@ -74,6 +89,9 @@ class AlarmSystem(Singleton):
         self.alarm.save_data()
 
     def disarm(self, auto_arm):
+        if not self.valid_setup():
+            return
+
         if self.alarm.arm_status in ['disarming', 'disarmed']:
             logging.info('System already %s, ignoring request',
                          self.alarm.arm_status)
@@ -117,7 +135,7 @@ class AlarmHistory(Singleton):
         if self.__class__._inited:
             return
 
-        self.datastore_path = AlarmConfig.get('AlarmSystem', 'data_file')
+        self.datastore_path = AlarmConfig.get('Main', 'data_file_path')
         if not self.load_data():
             self.arm_status = 'disarmed'
             self.arm_status_time = 0

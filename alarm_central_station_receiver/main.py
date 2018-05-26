@@ -35,7 +35,7 @@ from alarm_config import AlarmConfig
 from notifications import notify, notify_test
 
 
-def init_logging():
+def init_logging(stdout_only):
     root_logger = logging.getLogger('')
     root_logger.setLevel(logging.INFO)
     formatter = logging.Formatter(
@@ -47,10 +47,11 @@ def init_logging():
     console.setFormatter(formatter)
     root_logger.addHandler(console)
 
-    log_file = logging.FileHandler('/var/log/alarmd.log')
-    log_file.setLevel(logging.INFO)
-    log_file.setFormatter(formatter)
-    root_logger.addHandler(log_file)
+    if not stdout_only:
+        log_file = logging.FileHandler('/var/log/alarmd.log')
+        log_file.setLevel(logging.INFO)
+        log_file.setFormatter(formatter)
+        root_logger.addHandler(log_file)
 
     return log_file.stream
 
@@ -138,7 +139,7 @@ def process_sock_request(sockfd, alarm_system):
 
 
 def alarm_main_loop():
-    phone_number = AlarmConfig.get('AlarmSystem', 'phone_number')
+    phone_number = AlarmConfig.get('Main', 'phone_number')
     alarm_history = AlarmHistory()
     alarm_system = AlarmSystem()
 
@@ -180,7 +181,7 @@ def main():
     args = parser.parse_args()
 
     check_running_root()
-    log_fd = init_logging()
+    log_fd = init_logging(args.no_fork)
 
     if args.create_config:
         write_config_exit(args.config_path)
