@@ -19,20 +19,24 @@ import argparse
 
 import logging
 import sys
-import shelve
 import signal
+import socket
+
 import tigerjet
 
 from os import geteuid
 from sys import stderr, stdout
 from select import select
+
+import json_ipc
 from contact_id import handshake, decoder, callup
-from alarm import Alarm
-from alarm_config import AlarmConfig
+from status import AlarmStatus
+from system import AlarmSystem
+from config import AlarmConfig
 from notifications import notify, notify_test
 
 
-def init_logging():
+def init_logging(stdout_only):
     root_logger = logging.getLogger('')
     root_logger.setLevel(logging.INFO)
     formatter = logging.Formatter(
@@ -44,34 +48,20 @@ def init_logging():
     console.setFormatter(formatter)
     root_logger.addHandler(console)
 
-    log_file = logging.FileHandler('/var/log/alarmd.log')
-    log_file.setLevel(logging.INFO)
-    log_file.setFormatter(formatter)
-    root_logger.addHandler(log_file)
+    log_fd = None
+    if not stdout_only:
+        log_file = logging.FileHandler('/var/log/alarmd.log')
+        log_file.setLevel(logging.INFO)
+        log_file.setFormatter(formatter)
+        root_logger.addHandler(log_file)
+        log_fd = log_file.stream
 
-    return log_file.stream
-
-
-def update_alarm_events(events):
-    alarm_config = shelve.open('/alarm_config')
-    alarm = alarm_config.get('alarm', Alarm())
-    alarm.add_new_events(events)
-    alarm_config['alarm'] = alarm
-    alarm_config.close()
-
-
-def wait_for_alarm(alarmhid):
-    read = []
-    # read, write, error
-    while alarmhid not in read:
-        read, _, _ = select([alarmhid], [], [])
-        if alarmhid not in read:
-            logging.info('alarmhid not in select, ignoring call')
+    return log_fd
 
 
 def sigcleanup_handler(signum, _):
     sig_name = next(v for v, k in signal.__dict__.iteritems() if k == signum)
-    logging.info("Received %s, exiting" % sig_name)
+    logging.info("Received %s, exiting", sig_name)
     sys.exit(0)
 
 
@@ -83,15 +73,14 @@ def check_running_root():
 
 def create_or_check_required_config(path):
     if not AlarmConfig.exists(path):
-        logging.info('Configuration missing, writing to %s.\n\n' % path)
+        logging.info('Configuration missing, writing to %s.\n\n', path)
         AlarmConfig.create(path)
 
     AlarmConfig.load(path)
     missing_config = AlarmConfig.validate(AlarmConfig.get())
     if missing_config:
         logging.error(
-            'The following required configuration is missing from %s\n\n' %
-            path)
+            'The following required configuration is missing from %s\n\n', path)
         logging.error('\n'.join(missing_config))
         logging.error('\n\nExiting\n\n')
         sys.exit(-1)
@@ -105,12 +94,12 @@ def initialize(config_path):
 
 def write_config_exit(config_path):
     if not AlarmConfig.exists(config_path):
-        logging.info('Writing configuration to %s and exiting.\n' %
+        logging.info('Writing configuration to %s and exiting.\n',
                      config_path)
         AlarmConfig.create(config_path)
     else:
         logging.info(
-            'Configuration at %s already exists, skipping write\n' % config_path)
+            'Configuration at %s already exists, skipping write\n', config_path)
 
     sys.exit(0)
 
@@ -122,16 +111,52 @@ def notification_test_exit():
     sys.exit(0)
 
 
+def process_alarm_event(alarmhid, phone_number, alarm_status):
+    raw_events = callup.handle_alarm_calling(alarmhid, phone_number)
+    events = decoder.decode(raw_events)
+    alarm_status.add_new_events(events)
+    notify(events)
+
+
+def process_sock_request(sockfd, alarm_system):
+    try:
+        conn, _ = sockfd.accept()
+        conn.settimeout(20)
+        msg = json_ipc.recv(conn)
+        command = msg.get('command')
+        auto_arm = True if 'auto' in command else False
+        if command in ['arm', 'auto-arm']:
+            alarm_system.arm(auto_arm)
+            rsp = {'error': False}
+        elif command in ['disarm', 'auto-disarm']:
+            alarm_system.disarm(auto_arm)
+            rsp = {'error': False}
+        else:
+            rsp = {'error': 'Invalid command %s' % command}
+
+        json_ipc.send(conn, rsp)
+        conn.close()
+
+    except socket.timeout:
+        logging.error("Timed out receiving data from client")
+
+
 def alarm_main_loop():
-    phone_number = AlarmConfig.get('AlarmSystem', 'phone_number')
+    phone_number = AlarmConfig.get('Main', 'phone_number')
+    alarm_status = AlarmStatus()
+    alarm_system = AlarmSystem()
+
     with open(tigerjet.hidraw_path(), 'rb') as alarmhid:
-        logging.info("Ready, listening for alarms")
-        while True:
-            wait_for_alarm(alarmhid)
-            raw_events = callup.handle_alarm_calling(alarmhid, phone_number)
-            events = decoder.decode(raw_events)
-            update_alarm_events(events)
-            notify(events)
+        with json_ipc.ServerSock() as sockfd:
+            logging.info("Ready, listening for alarms")
+            while True:
+                read = []
+                read, _, _ = select([alarmhid, sockfd], [], [])
+                if alarmhid in read:
+                    process_alarm_event(alarmhid, phone_number, alarm_status)
+
+                if sockfd in read:
+                    process_sock_request(sockfd, alarm_system)
 
     return 0
 
@@ -159,7 +184,7 @@ def main():
     args = parser.parse_args()
 
     check_running_root()
-    log_fd = init_logging()
+    log_fd = init_logging(args.no_fork)
 
     if args.create_config:
         write_config_exit(args.config_path)

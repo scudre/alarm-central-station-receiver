@@ -15,7 +15,7 @@ limitations under the License.
 """
 import logging
 import requests
-from ...alarm_config import AlarmConfig
+from ...config import AlarmConfig
 
 
 def create_message(events):

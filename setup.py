@@ -16,12 +16,17 @@ setup(
     zip_safe=False,
     include_package_data=True,
     entry_points={
-        'console_scripts': ['alarmd=alarm_central_station_receiver.main:main']
+        'console_scripts': [
+            'alarmd=alarm_central_station_receiver.main:main',
+            'alarm-ctl=alarm_central_station_receiver.alarm_ctl:main'
+        ]
     },
     install_requires=[
-        # XXX scud add support later 'RPi.GPIO',
         'pyaudio',
         'python-daemon',
         'requests'
-    ]
+    ],
+    extras_require={
+        'RPI': ['RPi.GPIO']
+    }
 )

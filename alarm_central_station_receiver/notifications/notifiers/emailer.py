@@ -17,7 +17,7 @@ import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from ...alarm_config import AlarmConfig
+from ...config import AlarmConfig
 
 
 def create_message(events):

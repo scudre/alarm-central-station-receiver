@@ -20,9 +20,18 @@ import os.path
 LOADED_CONFIG = {}
 
 CONFIG_MAP = {
-    'AlarmSystem': {
+    'Main': {
         'required': True,
-        'keys': {'phone_number': True}
+        'keys': {
+            'phone_number': True,
+            'data_file_path': True,
+
+        }
+    },
+
+    'RpiArmDisarm': {
+        'required': False,
+        'keys': {'gpio_pin': True}
     },
 
     'ZoneMapping': {'required': False},
