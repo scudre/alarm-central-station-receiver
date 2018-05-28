@@ -29,6 +29,11 @@ CONFIG_MAP = {
         }
     },
 
+    'RpiArmDisarm': {
+        'required': False,
+        'keys': {'gpio_pin': True}
+    },
+
     'ZoneMapping': {'required': False},
     'EmailNotification': {
         'required': False,

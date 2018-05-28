@@ -1,5 +1,5 @@
 """
-Copyright (2017) Chris Scuderi
+Copyright (2018) Chris Scuderi
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,110 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
-import time
 import os.path
 
 from json import load, dump
 from os import remove
 from shutil import move
-from sys import stderr
-
 from singleton import Singleton
-from alarm_config import AlarmConfig
-
-try:
-    import RPi.GPIO as GPIO
-except RuntimeError:
-    GPIO = None
+from config import AlarmConfig
 
 
-class AlarmSystem(Singleton):
-    def valid_setup(self):
-        if not self.pin:
-            return False
-
-        if not GPIO:
-            logging.error('Python package RPi.GPIO must be installed to arm/disarm via RaspberryPi')
-            return False
-
-        return True
-
-    def _trip_keyswitch(self):
-        """
-        This pin is connected to an I/O port on the PC9155 alarm.
-        The I/O port is configured in the PC9155 as a 'temporary
-        keyswitch'. Toggling this I/O port triggers the alarm
-        to arm and disarm.
-        """
-        GPIO.output(self.pin, not GPIO.input(self.pin))
-        time.sleep(2)
-        GPIO.output(self.pin, not GPIO.input(self.pin))
-
-    def _initialize_rpi_gpio(self):
-        """
-        This pin is connected to an I/O port on the PC9155 alarm.
-        The I/O port is configured in the PC9155 as a 'temporary
-        keyswitch'. Toggling this I/O port triggers the alarm
-        to arm and disarm.
-        """
-        GPIO.setwarnings(False)
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(self.pin, GPIO.OUT)
-
-    def __init__(self):
-        self.pin = AlarmConfig.get('RpiArmDisarm', 'gpio_pin')
-        if not self.valid_setup():
-            return
-
-        self.alarm = AlarmHistory()
-        self._initialize_rpi_gpio()
-
-    def arm(self, auto_arm):
-        if not self.valid_setup():
-            return
-
-        if self.alarm.arm_status in ['armed', 'arming']:
-            logging.info('System already %s, ignoring request',
-                         self.alarm.arm_status)
-            return
-
-        logging.info('Arming system%s...',
-                     ' in auto mode' if auto_arm else '')
-        self._trip_keyswitch()
-        self.alarm.arm_status = 'arming'
-        self.alarm.auto_arm = auto_arm
-        self.alarm.save_data()
-
-    def disarm(self, auto_arm):
-        if not self.valid_setup():
-            return
-
-        if self.alarm.arm_status in ['disarming', 'disarmed']:
-            logging.info('System already %s, ignoring request',
-                         self.alarm.arm_status)
-            return
-
-        if auto_arm and not self.alarm.auto_arm:
-            logging.info('System manually armed, skipping auto disarm')
-            return
-
-        logging.info('Disarming system...')
-        self._trip_keyswitch()
-
-        # If the system wasn't fully armed, there won't be an event
-        # from the alarm indicating arm/disrm
-        self.alarm.auto_arm = False
-        if self.alarm.arm_status == 'arming':
-            self.alarm.arm_status = 'disarmed'
-        else:
-            self.alarm.arm_status = 'disarming'
-
-        self.alarm.save_data()
-
-
-class AlarmHistory(Singleton):
-    _inited = False
-
+@Singleton
+class AlarmStatus(object):
     def __getattr__(self, attr):
         return self._datastore.get(attr)
 
@@ -129,12 +36,9 @@ class AlarmHistory(Singleton):
         if attr in attributes:
             self._datastore[attr] = value
         else:
-            super(AlarmHistory, self).__setattr__(attr, value)
+            super(AlarmStatus._klass, self).__setattr__(attr, value)
 
     def __init__(self):
-        if self.__class__._inited:
-            return
-
         self.datastore_path = AlarmConfig.get('Main', 'data_file_path')
         if not self.load_data():
             self.arm_status = 'disarmed'
@@ -143,8 +47,6 @@ class AlarmHistory(Singleton):
             self.system_status = 'ok'
             self.history = []
             self.active_events = {}
-
-        self.__class__._inited = True
 
     def load_data(self):
         """

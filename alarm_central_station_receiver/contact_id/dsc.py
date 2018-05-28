@@ -1,7 +1,7 @@
 """
 DSC Contact ID Codes to Descriptions
 """
-from ..alarm_config import AlarmConfig
+from ..config import AlarmConfig
 
 EVENTS = {
     '100000': {'1': ('A', 'Aux Key Alarm')},

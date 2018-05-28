@@ -22,9 +22,11 @@ setup(
         ]
     },
     install_requires=[
-        # XXX scud add support later 'RPi.GPIO',
         'pyaudio',
         'python-daemon',
         'requests'
-    ]
+    ],
+    extras_require={
+        'RPI': ['RPi.GPIO']
+        }
 )

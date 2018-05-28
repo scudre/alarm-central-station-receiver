@@ -30,8 +30,9 @@ from select import select
 
 import json_ipc
 from contact_id import handshake, decoder, callup
-from alarm import AlarmHistory, AlarmSystem
-from alarm_config import AlarmConfig
+from status import AlarmStatus
+from system import AlarmSystem
+from config import AlarmConfig
 from notifications import notify, notify_test
 
 
@@ -47,13 +48,15 @@ def init_logging(stdout_only):
     console.setFormatter(formatter)
     root_logger.addHandler(console)
 
+    log_fd = None
     if not stdout_only:
         log_file = logging.FileHandler('/var/log/alarmd.log')
         log_file.setLevel(logging.INFO)
         log_file.setFormatter(formatter)
         root_logger.addHandler(log_file)
+        log_fd = log_file.stream
 
-    return log_file.stream
+    return log_fd
 
 
 def sigcleanup_handler(signum, _):
@@ -108,10 +111,10 @@ def notification_test_exit():
     sys.exit(0)
 
 
-def process_alarm_event(alarmhid, phone_number, alarm_history):
+def process_alarm_event(alarmhid, phone_number, alarm_status):
     raw_events = callup.handle_alarm_calling(alarmhid, phone_number)
     events = decoder.decode(raw_events)
-    alarm_history.add_new_events(events)
+    alarm_status.add_new_events(events)
     notify(events)
 
 
@@ -140,7 +143,7 @@ def process_sock_request(sockfd, alarm_system):
 
 def alarm_main_loop():
     phone_number = AlarmConfig.get('Main', 'phone_number')
-    alarm_history = AlarmHistory()
+    alarm_status = AlarmStatus()
     alarm_system = AlarmSystem()
 
     with open(tigerjet.hidraw_path(), 'rb') as alarmhid:
@@ -150,7 +153,7 @@ def alarm_main_loop():
                 read = []
                 read, _, _ = select([alarmhid, sockfd], [], [])
                 if alarmhid in read:
-                    process_alarm_event(alarmhid, phone_number, alarm_history)
+                    process_alarm_event(alarmhid, phone_number, alarm_status)
 
                 if sockfd in read:
                     process_sock_request(sockfd, alarm_system)
