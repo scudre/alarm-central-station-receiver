@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import time
-import dsc
+
+from alarm_central_station_receiver.contact_id import dsc
 
 
 def create_event(rtype, description, eid):

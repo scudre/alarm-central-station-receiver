@@ -13,4 +13,4 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from notify import notify, notify_test
+from alarm_central_station_receiver.notifications.notify import notify, notify_test

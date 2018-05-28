@@ -15,8 +15,9 @@ limitations under the License.
 """
 import logging
 import time
-from notifiers import emailer, pushover
 import multiprocessing
+
+from alarm_central_station_receiver.notifications.notifiers import emailer, pushover
 
 
 def log_events(events):

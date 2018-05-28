@@ -19,8 +19,9 @@ import os.path
 from json import load, dump
 from os import remove
 from shutil import move
-from singleton import Singleton
-from config import AlarmConfig
+
+from alarm_central_station_receiver.singleton import Singleton
+from alarm_central_station_receiver.config import AlarmConfig
 
 
 @Singleton

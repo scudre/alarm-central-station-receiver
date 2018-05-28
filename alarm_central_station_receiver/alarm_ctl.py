@@ -18,7 +18,7 @@ import argparse
 from os import geteuid
 import sys
 
-from json_ipc import send_client_msg
+from alarm_central_station_receiver.json_ipc import send_client_msg
 
 
 def check_running_root():

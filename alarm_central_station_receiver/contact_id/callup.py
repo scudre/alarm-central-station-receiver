@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
-import handshake
+from alarm_central_station_receiver.contact_id import handshake
 
 
 def collect_alarm_codes(fd):

@@ -17,8 +17,6 @@ import ConfigParser
 import shutil
 import os.path
 
-LOADED_CONFIG = {}
-
 CONFIG_MAP = {
     'Main': {
         'required': True,
@@ -61,21 +59,22 @@ CONFIG_MAP = {
 
 
 class AlarmConfig(object):
+    loaded_config = {}
+
     @staticmethod
     def exists(path):
         return os.path.isfile(path)
 
-    @staticmethod
-    def load(path):
+    @classmethod
+    def load(klass, path):
         config = ConfigParser.ConfigParser()
         config.read(path)
-        global LOADED_CONFIG
-        LOADED_CONFIG = {key: dict(config.items(key))
-                         for key in config.sections()}
+        klass.loaded_config = {key: dict(config.items(key))
+                               for key in config.sections()}
 
-    @staticmethod
-    def get(*argv):
-        config = LOADED_CONFIG
+    @classmethod
+    def get(klass, *argv):
+        config = klass.loaded_config
         for arg in argv:
             config = config.get(arg, {})
 

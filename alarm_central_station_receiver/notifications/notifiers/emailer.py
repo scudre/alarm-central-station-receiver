@@ -17,7 +17,7 @@ import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from ...config import AlarmConfig
+from alarm_central_station_receiver.config import AlarmConfig
 
 
 def create_message(events):

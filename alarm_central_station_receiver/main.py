@@ -16,24 +16,21 @@ limitations under the License.
 import daemon
 import lockfile
 import argparse
-
 import logging
 import sys
 import signal
 import socket
 
-import tigerjet
-
 from os import geteuid
-from sys import stderr, stdout
 from select import select
 
-import json_ipc
-from contact_id import handshake, decoder, callup
-from status import AlarmStatus
-from system import AlarmSystem
-from config import AlarmConfig
-from notifications import notify, notify_test
+from alarm_central_station_receiver import tigerjet
+from alarm_central_station_receiver import json_ipc
+from alarm_central_station_receiver.contact_id import handshake, decoder, callup
+from alarm_central_station_receiver.status import AlarmStatus
+from alarm_central_station_receiver.system import AlarmSystem
+from alarm_central_station_receiver.config import AlarmConfig
+from alarm_central_station_receiver.notifications import notify, notify_test
 
 
 def init_logging(stdout_only):
@@ -43,7 +40,7 @@ def init_logging(stdout_only):
         fmt='%(asctime)s alarmd[%(process)d]: [%(module)s.%(levelname)s] %(message)s',
         datefmt='%b %d %y %I:%M:%S %p')
 
-    console = logging.StreamHandler(stdout)
+    console = logging.StreamHandler(sys.stdout)
     console.setLevel(logging.INFO)
     console.setFormatter(formatter)
     root_logger.addHandler(console)
@@ -67,7 +64,7 @@ def sigcleanup_handler(signum, _):
 
 def check_running_root():
     if geteuid() != 0:
-        stderr.write("Error: Alarmd must run as root - exiting\n")
+        sys.stderr.write("Error: Alarmd must run as root - exiting\n")
         sys.exit(-1)
 
 
@@ -200,9 +197,9 @@ def main():
             not args.no_fork),
         pidfile=lockfile.FileLock('/var/run/alarmd.pid'),
         stderr=(
-            stderr if args.no_fork else None),
+            sys.stderr if args.no_fork else None),
         stdout=(
-            stdout if args.no_fork else None))
+            sys.stdout if args.no_fork else None))
     context.signal_map = {signal.SIGTERM: sigcleanup_handler,
                           signal.SIGINT: sigcleanup_handler}
 

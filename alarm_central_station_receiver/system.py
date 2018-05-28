@@ -15,9 +15,10 @@ limitations under the License.
 """
 import logging
 import time
-from singleton import Singleton
-from config import AlarmConfig
-from status import AlarmStatus
+
+from alarm_central_station_receiver.singleton import Singleton
+from alarm_central_station_receiver.config import AlarmConfig
+from alarm_central_station_receiver.status import AlarmStatus
 
 try:
     import RPi.GPIO as GPIO
