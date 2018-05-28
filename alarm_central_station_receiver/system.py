@@ -32,7 +32,8 @@ class AlarmSystem(object):
             return False
 
         if not GPIO:
-            logging.error('Python package RPi.GPIO must be installed to arm/disarm via RaspberryPi GPIO pins')
+            logging.error(
+                'Python package RPi.GPIO must be installed to arm/disarm via RaspberryPi GPIO pins')
             return False
 
         return True
