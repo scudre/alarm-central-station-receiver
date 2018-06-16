@@ -43,6 +43,13 @@ def collect_alarm_codes(fd):
 
         logging.info("Alarm Hung Up")
 
+    # XXX hack - Tigerjet can't detect the highest DTMF code of 14
+    if len(code) == 15 and checksum % 15 == 1:
+        code += format(14, 'x')
+        codes.append((False, code))
+        code = ''
+        checksum = 0
+
     if len(code) != 0:
         # There are leftover bits
         codes.append((True, code))
@@ -84,6 +91,7 @@ def get_phone_status(fd):
 
     off_hook = ((ord(status[1]) & 0x80) == 0x80)
     digit = ord(status[0])
+
     if digit < 11:
         digit = digit - 1
 
@@ -91,6 +99,7 @@ def get_phone_status(fd):
 
 
 def handle_alarm_calling(fd, number):
+    codes = []
     if validate_alarm_call_in(fd, number):
         codes = collect_alarm_codes(fd)
 

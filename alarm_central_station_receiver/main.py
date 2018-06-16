@@ -33,22 +33,23 @@ from alarm_central_station_receiver.config import AlarmConfig
 from alarm_central_station_receiver.notifications import notify, notify_test
 
 
-def init_logging(stdout_only):
+def init_logging(stdout_only, debug_logs):
     root_logger = logging.getLogger('')
-    root_logger.setLevel(logging.INFO)
+    log_level = logging.DEBUG if debug_logs else logging.INFO
+    root_logger.setLevel(log_level)
     formatter = logging.Formatter(
         fmt='%(asctime)s alarmd[%(process)d]: [%(module)s.%(levelname)s] %(message)s',
         datefmt='%b %d %y %I:%M:%S %p')
 
     console = logging.StreamHandler(sys.stdout)
-    console.setLevel(logging.INFO)
+    console.setLevel(log_level)
     console.setFormatter(formatter)
     root_logger.addHandler(console)
 
     log_fd = None
     if not stdout_only:
         log_file = logging.FileHandler('/var/log/alarmd.log')
-        log_file.setLevel(logging.INFO)
+        log_file.setLevel(log_level)
         log_file.setFormatter(formatter)
         root_logger.addHandler(log_file)
         log_fd = log_file.stream
@@ -165,6 +166,13 @@ def main():
         action='store_true',
         default=False,
         help='Run alarmd in the foreground, useful for debugging')
+
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        default=False,
+        help='Log at debug level')
+
     parser.add_argument('-c', '--config',
                         default='/etc/alarmd_config.ini',
                         metavar='config_path',
@@ -181,7 +189,7 @@ def main():
     args = parser.parse_args()
 
     check_running_root()
-    log_fd = init_logging(args.no_fork)
+    log_fd = init_logging(args.no_fork, args.debug)
 
     if args.create_config:
         write_config_exit(args.config_path)
