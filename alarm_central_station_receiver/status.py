@@ -68,7 +68,7 @@ class AlarmStatus(object):
             logging.info('Saving config to %s', self.datastore_path)
             tmp_path = '.'.join([self.datastore_path, 'tmp'])
             with open(tmp_path, 'w') as file_desc:
-                dump(self._datastore, file_desc)
+                dump(self._datastore, file_desc, sort_keys=True, indent=4)
 
             move(tmp_path, self.datastore_path)
         except (IOError, OSError) as exc:
