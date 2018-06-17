@@ -124,11 +124,11 @@ def process_sock_request(sockfd, alarm_system):
         command = msg.get('command')
         auto_arm = True if 'auto' in command else False
         if command in ['arm', 'auto-arm']:
-            alarm_system.arm(auto_arm)
-            rsp = {'error': False}
+            status = alarm_system.arm(auto_arm)
+            rsp = {'error': False, 'status': status}
         elif command in ['disarm', 'auto-disarm']:
-            alarm_system.disarm(auto_arm)
-            rsp = {'error': False}
+            status = alarm_system.disarm(auto_arm)
+            rsp = {'error': False, 'status': status}
         else:
             rsp = {'error': 'Invalid command %s' % command}
 

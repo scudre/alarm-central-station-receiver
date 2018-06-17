@@ -74,31 +74,37 @@ class AlarmSystem(object):
             return
 
         if self.alarm.arm_status in ['armed', 'arming']:
-            logging.info('System already %s, ignoring request',
-                         self.alarm.arm_status)
-            return
+            status = 'System already %s, ignoring request' % self.alarm.arm_status
+            logging.info(status)
+            return status
 
-        logging.info('Arming system%s...',
-                     ' in auto mode' if auto_arm else '')
+        status = 'Arming system%s...' % (' in auto mode' if auto_arm else '')
+        logging.info(status)
+
         self._trip_keyswitch()
         self.alarm.arm_status = 'arming'
         self.alarm.auto_arm = auto_arm
         self.alarm.save_data()
+
+        return status
 
     def disarm(self, auto_arm):
         if not self.valid_setup():
             return
 
         if self.alarm.arm_status in ['disarming', 'disarmed']:
-            logging.info('System already %s, ignoring request',
-                         self.alarm.arm_status)
-            return
+            status = 'System already %s, ignoring request' % self.alarm.arm_status
+            logging.info(status)
+
+            return status
 
         if auto_arm and not self.alarm.auto_arm:
-            logging.info('System manually armed, skipping auto disarm')
-            return
+            status = 'System manually armed, skipping auto disarm'
+            logging.info(status)
+            return status
 
-        logging.info('Disarming system...')
+        status = 'Disarming system...'
+        logging.info(status)
         self._trip_keyswitch()
 
         # If the system wasn't fully armed, there won't be an event
@@ -110,3 +116,5 @@ class AlarmSystem(object):
             self.alarm.arm_status = 'disarming'
 
         self.alarm.save_data()
+
+        return status
