@@ -44,13 +44,18 @@ on the keypad, or with the regular arm command.
     args = parser.parse_args()
     check_running_root()
 
-    error_msg = send_client_msg({'command': args.command})
-    if not error_msg:
-        sys.stdout.write('Success')
-        return 0
+    rsp, serr = send_client_msg({'command': args.command})
+    if serr:
+        sys.stderr.write('%s\n' % serr)
+        return -1
 
-    sys.stderr.write('Error: %s', error_msg)
-    return -1
+    error_msg = rsp.get('error')
+    if error_msg:
+        sys.stderr.write('Error: %s\n' % error_msg)
+        return -1
+
+    sys.stdout.write('%s\n' % rsp.get('status'))
+    return 0
 
 
 if __name__ == "__main__":

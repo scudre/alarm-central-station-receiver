@@ -37,12 +37,17 @@ class ServerSock(object):
 
 
 def send_client_msg(request):
-    s = start_socket_client()
-    send(s, request)
-    rsp = recv(s)
-    s.close()
+    try:
+        serr = None
+        rsp = None
+        s = start_socket_client()
+        send(s, request)
+        rsp = recv(s)
+        s.close()
+    except socket.error as exc:
+        serr = 'Exception: %s\nUnable to open socket, is alarmd running?' % exc
 
-    return rsp.get('error')
+    return rsp, serr
 
 
 def start_socket_client():
