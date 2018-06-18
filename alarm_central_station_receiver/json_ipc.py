@@ -60,14 +60,15 @@ def start_socket_client():
 def send(sock, obj):
     msg = json.dumps(obj)
     packet = '%05d%s' % (len(msg), msg)
-    sock.sendall(packet)
+    sock.sendall(packet.encode())
 
 
 def recv(sock):
-    msg_len = int(sock.recv(5))
+    msg_len = sock.recv(5)
     msg = ''
-    while len(msg) < msg_len:
-        chunk = sock.recv(msg_len - len(msg))
+
+    while len(msg) < int(msg_len):
+        chunk = sock.recv(int(msg_len) - len(msg)).decode()
         assert chunk != ''
         msg = msg + chunk
 

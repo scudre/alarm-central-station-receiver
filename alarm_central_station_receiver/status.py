@@ -83,7 +83,7 @@ class AlarmStatus(object):
         `self.outstanding` list.
         """
         event_types = [item['type']
-                       for item in self.active_events.itervalues()]
+                       for item in self.active_events.values()]
         if 'A' in event_types:
             self.system_status = 'alarm'
         elif 'MA' in event_types or 'T' in event_types:
