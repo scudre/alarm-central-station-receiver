@@ -1,15 +1,13 @@
 from setuptools import setup, find_packages, Extension
-from sys import version_info
 
 pytjapi = Extension(
     'pytjapi',
     sources=['alarm_central_station_receiver/tigerjet/pytjapi.c']
 )
 
-
 setup(
     name='alarm_central_station_receiver',
-    version='0.0.9',
+    version='1.0.0',
     author='Chris Scuderi',
     license='Apache License Version 2.0',
     description='Software based central station receiver for home alarm systems',
