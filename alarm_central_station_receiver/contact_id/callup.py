@@ -84,16 +84,12 @@ def validate_alarm_call_in(fd, expected):
 
 
 def get_phone_status(fd):
-
-    # XXX for python 3 no need to have ORD, can directly read/write
-    # values as they are already in bytes
-    status = fd.read(2)
-
-    off_hook = ((ord(status[1]) & 0x80) == 0x80)
-    digit = ord(status[0])
-
+    status = bytearray(fd.read(2))
+    digit = status[0]
     if digit < 11:
         digit = digit - 1
+
+    off_hook = ((status[1] & 0x80) == 0x80)
 
     return (off_hook, digit)
 
