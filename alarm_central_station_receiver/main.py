@@ -212,6 +212,7 @@ def main():
                           signal.SIGINT: sigcleanup_handler}
 
     with context:
+        logging.info('Python %s', sys.version)
         logging.info(
             "Starting in %s mode",
             'no-fork' if args.no_fork else 'daemonized')

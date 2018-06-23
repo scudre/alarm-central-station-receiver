@@ -7,13 +7,6 @@ pytjapi = Extension(
 )
 
 
-def pyver():
-    if version_info > (3, 0):
-        return version_info.major
-
-    return ''
-
-
 setup(
     name='alarm_central_station_receiver',
     version='0.0.9',
@@ -26,8 +19,8 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'alarmd%s=alarm_central_station_receiver.main:main' % pyver(),
-            'alarm-ctl%s=alarm_central_station_receiver.alarm_ctl:main' % pyver()
+            'alarmd=alarm_central_station_receiver.main:main',
+            'alarm-ctl=alarm_central_station_receiver.alarm_ctl:main'
         ]
     },
 
