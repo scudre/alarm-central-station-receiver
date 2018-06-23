@@ -6,6 +6,7 @@
  * These modifications were done with Môshe van der Sterre's permission.
  *
  *****************************************************************************/
+#include <Python.h>
 #include <unistd.h>
 #include <limits.h>
 #include <errno.h>
@@ -14,7 +15,6 @@
 #include <sys/ioctl.h>
 #include <asm/types.h>
 #include <linux/hiddev.h>
-#include <Python.h>
 
 #define TIGERJET_VENDOR_ID 0x06E6
 
@@ -40,6 +40,16 @@ static PyMethodDef module_methods[] = {
 	{"is_tigerjet", pytjapi_is_tigerjet, METH_VARARGS, tj_docstring},
 	{NULL, NULL, 0, NULL}
 };
+
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef module_def = {
+    PyModuleDef_HEAD_INIT,
+    "pytjapi",       
+    module_docstring,
+    -1,
+    module_methods
+};
+#endif
 
 int is_tigerjet(int hid_fd, int *pid)
 {
@@ -218,9 +228,27 @@ static PyObject *pytjapi_is_tigerjet(PyObject *self, PyObject *args)
 	return (Py_BuildValue("O", ret ? Py_True : Py_False));
 }
 
+
+#if PY_MAJOR_VERSION >= 3
+
+PyMODINIT_FUNC PyInit_pytjapi(void)
+{
+  PyObject *module = PyModule_Create(&module_def);
+  if (module == NULL) {
+    return (NULL);
+  }
+
+  return module;
+}
+
+#else
+
 PyMODINIT_FUNC initpytjapi(void)
 {
-  PyObject *m = Py_InitModule3("pytjapi", module_methods, module_docstring);
-  if (m == NULL)
+  PyObject *module = Py_InitModule3("pytjapi", module_methods, module_docstring);
+  if (module == NULL) {
     return;
+  }
 }
+
+#endif

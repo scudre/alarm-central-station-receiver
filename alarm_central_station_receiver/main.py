@@ -58,7 +58,7 @@ def init_logging(stdout_only, debug_logs):
 
 
 def sigcleanup_handler(signum, _):
-    sig_name = next(v for v, k in signal.__dict__.iteritems() if k == signum)
+    sig_name = next(v for v, k in signal.__dict__.items() if k == signum)
     logging.info("Received %s, exiting", sig_name)
     sys.exit(0)
 
@@ -212,6 +212,7 @@ def main():
                           signal.SIGINT: sigcleanup_handler}
 
     with context:
+        logging.info('Python %s', sys.version)
         logging.info(
             "Starting in %s mode",
             'no-fork' if args.no_fork else 'daemonized')

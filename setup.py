@@ -7,7 +7,7 @@ pytjapi = Extension(
 
 setup(
     name='alarm_central_station_receiver',
-    version='0.0.9',
+    version='1.0.0',
     author='Chris Scuderi',
     license='Apache License Version 2.0',
     description='Software based central station receiver for home alarm systems',
@@ -21,9 +21,10 @@ setup(
             'alarm-ctl=alarm_central_station_receiver.alarm_ctl:main'
         ]
     },
+
     install_requires=[
         'pyaudio',
-        'python-daemon',
+        'python-daemon-3k',
         'requests'
     ],
     extras_require={

@@ -22,7 +22,7 @@ from alarm_central_station_receiver.status import AlarmStatus
 
 try:
     import RPi.GPIO as GPIO
-except RuntimeError:
+except ImportError:
     GPIO = None
 
 

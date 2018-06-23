@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import ConfigParser
+import configparser
 import shutil
 import os.path
 
@@ -67,7 +67,7 @@ class AlarmConfig(object):
 
     @classmethod
     def load(klass, path):
-        config = ConfigParser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(path)
         klass.loaded_config = {key: dict(config.items(key))
                                for key in config.sections()}
@@ -84,7 +84,7 @@ class AlarmConfig(object):
     def validate(config):
         missing_config = []
 
-        for sec_name, section in CONFIG_MAP.iteritems():
+        for sec_name, section in CONFIG_MAP.items():
             optional = not section.get('required')
             missing = not config.get(sec_name)
 
@@ -93,7 +93,7 @@ class AlarmConfig(object):
             if optional and missing:
                 continue
 
-            for key, key_required in section.get('keys', {}).iteritems():
+            for key, key_required in section.get('keys', {}).items():
                 cfg_value = config.get(sec_name, {}).get(key, '')
 
                 if key_required and cfg_value == '':
