@@ -38,13 +38,28 @@ the system daily, but want to skip disarming if the system was armed
 on the keypad, or with the regular arm command.
 """
 
-    parser.add_argument('command', choices=['arm', 'disarm', 'auto-arm', 'auto-disarm', 'status'],
+    parser.add_argument('command', choices=['arm', 'disarm', 'auto-arm', 'auto-disarm', 'status', 'history'],
                         help=help_text)
+    parser.add_argument('--start-index', type=int)
+    parser.add_argument('--end-index', type=int)
 
     args = parser.parse_args()
     check_running_root()
 
-    rsp, serr = send_client_msg({'command': args.command})
+    request_msg = {'command': args.command}
+
+    if args.command == 'history':
+        if not args.start_idx or not args.end_index:
+            sys.stderr.write(
+                'Error: start-index and end-index required with history command')
+            return -1
+
+        options = {'start_idx': args.start_index,
+                   'end_idx': args.end_index
+                   }
+        request_msg['options'] = options
+
+    rsp, serr = send_client_msg(request_msg)
     if serr:
         sys.stderr.write('%s\n' % serr)
         return -1
@@ -55,10 +70,11 @@ on the keypad, or with the regular arm command.
         return -1
 
     if args.command == 'status':
-        for key, value in rsp.items():
-            sys.stdout.write('%s: %s\n' % (key.replace('_', ' ').title(), value.title()))
+        for key, value in rsp.get('response').items():
+            sys.stdout.write('%s: %s\n' %
+                             (key.replace('_', ' ').title(), value.title()))
     else:
-        sys.stdout.write('%s\n' % rsp.get('status'))
+        sys.stdout.write('%s\n' % rsp.get('response'))
 
     return 0
 

@@ -125,17 +125,34 @@ def process_sock_request(sockfd, alarm_system):
         auto_arm = True if 'auto' in command else False
         if command in ['arm', 'auto-arm']:
             status = alarm_system.arm(auto_arm)
-            rsp = {'error': False, 'status': status}
+            rsp = {'error': False, 'response': status}
         elif command in ['disarm', 'auto-disarm']:
             status = alarm_system.disarm(auto_arm)
-            rsp = {'error': False, 'status': status}
+            rsp = {'error': False, 'response': status}
         elif command in ['status']:
             rsp = {
                 'error': False,
-                'arm_status': alarm_system.alarm.arm_status,
-                'arm_status_time': alarm_system.alarm.arm_status_time,
-                'auto_arm': alarm_system.alarm.auto_arm,
-                'system_status': alarm_system.alarm.system_status
+                'response': {
+                    'arm_status': alarm_system.alarm.arm_status,
+                    'arm_status_time': alarm_system.alarm.arm_status_time,
+                    'auto_arm': alarm_system.alarm.auto_arm,
+                    'system_status': alarm_system.alarm.system_status
+                }
+            }
+        elif command in ['history']:
+            options = msg.get('options')
+            start_idx = options.get('start_idx')
+            end_idx = options.get('end_idx')
+            error = False
+
+            if start_idx >= end_idx:
+                rsp = {'error': 'Start index must be less than end index'}
+            elif start_idx < 0 or end_idx < 0:
+                rsp = {'error': 'Indexes must be greater than 0'}
+            else:
+                rsp = {
+                    'error': False,
+                    'response': alarm_system.alarm.history[start_idx:end_idx]
                 }
         else:
             rsp = {'error': 'Invalid command %s' % command}
