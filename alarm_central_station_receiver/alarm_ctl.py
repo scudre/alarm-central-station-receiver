@@ -38,7 +38,7 @@ the system daily, but want to skip disarming if the system was armed
 on the keypad, or with the regular arm command.
 """
 
-    parser.add_argument('command', choices=['arm', 'disarm', 'auto-arm', 'auto-disarm'],
+    parser.add_argument('command', choices=['arm', 'disarm', 'auto-arm', 'auto-disarm', 'status'],
                         help=help_text)
 
     args = parser.parse_args()
@@ -49,12 +49,17 @@ on the keypad, or with the regular arm command.
         sys.stderr.write('%s\n' % serr)
         return -1
 
-    error_msg = rsp.get('error')
+    error_msg = rsp.pop('error')
     if error_msg:
         sys.stderr.write('Error: %s\n' % error_msg)
         return -1
 
-    sys.stdout.write('%s\n' % rsp.get('status'))
+    if args.command == 'status':
+        for key, value in rsp.items():
+            sys.stdout.write('%s: %s\n' % (key.replace('_', ' ').title(), value.title()))
+    else:
+        sys.stdout.write('%s\n' % rsp.get('status'))
+
     return 0
 
 
