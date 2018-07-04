@@ -17,6 +17,7 @@ limitations under the License.
 import argparse
 from os import geteuid
 import sys
+import json
 
 from alarm_central_station_receiver.json_ipc import send_client_msg
 
@@ -49,9 +50,9 @@ on the keypad, or with the regular arm command.
     request_msg = {'command': args.command}
 
     if args.command == 'history':
-        if not args.start_idx or not args.end_index:
+        if args.start_index == None or args.end_index == None:
             sys.stderr.write(
-                'Error: start-index and end-index required with history command')
+                'Error: start-index and end-index required with history command\n')
             return -1
 
         options = {'start_idx': args.start_index,
@@ -72,7 +73,9 @@ on the keypad, or with the regular arm command.
     if args.command == 'status':
         for key, value in rsp.get('response').items():
             sys.stdout.write('%s: %s\n' %
-                             (key.replace('_', ' ').title(), value.title()))
+                             (key.replace('_', ' ').title(), str(value).title()))
+    elif args.command == 'history':
+        sys.stdout.write('%s\n' % json.dumps(rsp.get('response'), indent=4))
     else:
         sys.stdout.write('%s\n' % rsp.get('response'))
 

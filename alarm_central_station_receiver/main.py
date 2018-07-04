@@ -141,8 +141,8 @@ def process_sock_request(sockfd, alarm_system):
             }
         elif command in ['history']:
             options = msg.get('options')
-            start_idx = options.get('start_idx')
-            end_idx = options.get('end_idx')
+            start_idx = options.get('start_idx', 0)
+            end_idx = options.get('end_idx', 0)
             error = False
 
             if start_idx >= end_idx:
@@ -152,7 +152,7 @@ def process_sock_request(sockfd, alarm_system):
             else:
                 rsp = {
                     'error': False,
-                    'response': alarm_system.alarm.history[start_idx:end_idx]
+                    'response': alarm_system.alarm.history[::-1][start_idx:end_idx]
                 }
         else:
             rsp = {'error': 'Invalid command %s' % command}
