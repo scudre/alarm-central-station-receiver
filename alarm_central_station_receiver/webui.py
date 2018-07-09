@@ -53,35 +53,25 @@ def get_alarm_status():
 
 @app.route("/api/alarm", methods=['PUT'])
 def set_alarm_status():
-    if request.json['arm_status'] == 'armed':
-        command = 'arm'
-    elif request.json['arm_status'] == 'disarmed':
-        command = 'disarm'
-    else:
+    if request.json['arm_status'] not in ['arm', 'disarm']:
         abort_json('Invalid arm_status %s' % request.json['arm_status'], 422)
 
-    send_request({'command': command})
+    send_request({'command': request.json['arm_status']})
 
     return get_alarm_status()
 
 
 @app.route("/api/alarm/history", methods=['GET'])
 def get_alarm_history():
-    start_idx = int(request.args.get('start_idx', 0))
-    end_idx = int(request.args.get('end_idx', 10))
-
-    if start_idx >= end_idx:
-        abort_json('start_idx must be less than end_idx', 422)
-    elif start_idx < 0 or end_idx < 0:
-        abort_json('start_idx and end_idx must be > 0', 422)
+    offset = int(request.args.get('offset', 0))
+    limit = int(request.args.get('limit', 10))
+    if offset < 0 or limit < 0:
+        abort_json('limit and offset must be > 0', 422)
 
     rsp = send_request({'command': 'history',
-                        'options': {
-                            'start_idx': start_idx,
-                            'end_idx': end_idx
-                        }
-                        }
-                       )
+                        'options': {'start_idx': offset,
+                                     'end_idx': offset + limit}
+                        })
 
     return jsonify(history=rsp)
 
