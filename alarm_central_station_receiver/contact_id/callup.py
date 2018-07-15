@@ -14,47 +14,60 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
+import re
 from alarm_central_station_receiver.contact_id import handshake
+
+
+def calc_checksum(code):
+    checksum = 0
+    for digit in code:
+        # 0 is treated as 10 in the checksum calculation
+        checksum += int(digit, 16) if digit != '0' else 10
+
+    return checksum % 15
+
+
+def parse_alarm_codes(code_str):
+    pattern = "([0-9]{4}18[136][0-9abcdef]{8}[0-9abcdef]?(?![0-9]{3}18[136]))"
+    codes = []
+    for code in re.split(pattern, code_str):
+        if not code:
+            continue
+
+        # There seems to be some buggyness with either TigerJet or the alarm system
+        # when sending the last checksum digit when its above 'c'
+        if len(code) == 15:
+            # XXX hack - Tigerjet can't detect the highest DTMF code of 15
+            if checksum(code) == 0:
+                code += 'f'
+
+            # XXX hack - Tigerjet can't detect the high DTMF code of 14
+            if checksum(code) == 1:
+                code += 'e'
+
+            if checksum(code) == 2:
+                code += 'd'
+
+        codes.append((code, calc_checksum(code) == 0))
+
+    return codes
 
 
 def collect_alarm_codes(fd):
     logging.info("Collecting Alarm Codes")
-    code = ''
-    checksum = 0
-    codes = []
+    code_str = ''
 
     # Play the alarm handshake to start getting the codes
     with handshake.Handshake():
         off_hook, digit = get_phone_status(fd)
         while off_hook:
-            if digit == -1:
-                off_hook, digit = get_phone_status(fd)
-                continue
-
-            # 0 is treated as 10 in the checksum calculation
-            checksum += 10 if digit == 0 else digit
-            code += format(digit, 'x')
-            if len(code) == 16:
-                codes.append(((checksum % 15 != 0), code))
-                code = ''
-                checksum = 0
-
+            code_str += format(digit, 'x') if digit != -1 else ''
             off_hook, digit = get_phone_status(fd)
 
         logging.info("Alarm Hung Up")
 
-    # XXX hack - Tigerjet can't detect the highest DTMF code of 14
-    if len(code) == 15 and checksum % 15 == 1:
-        code += format(14, 'x')
-        codes.append((False, code))
-        code = ''
-        checksum = 0
-
-    if len(code) != 0:
-        # There are leftover bits
-        codes.append((True, code))
-
-    return codes
+    logging.info('Code String: %s', code_str)
+    return code_str
 
 
 def validate_alarm_call_in(fd, expected):
@@ -97,6 +110,7 @@ def get_phone_status(fd):
 def handle_alarm_calling(fd, number):
     codes = []
     if validate_alarm_call_in(fd, number):
-        codes = collect_alarm_codes(fd)
+        code_str = collect_alarm_codes(fd)
+        codes = parse_alarm_codes(code_str)
 
     return codes

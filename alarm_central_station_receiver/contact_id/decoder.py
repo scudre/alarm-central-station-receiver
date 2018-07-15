@@ -30,17 +30,15 @@ def create_event(rtype, description, eid):
 def decode(raw_events):
     decoded_events = []
 
-    for err, code in raw_events:
-        if not err:
-            report_type, description = dsc.digits_to_alarmreport(code)
-        else:
+    for code, valid in raw_events:
+        if len(code) < 15:
             report_type = 'U'
-            if len(code) != 16:
-                description = \
-                    'Leftover Bits: %s (len %d)' % (code, len(code))
-            else:
-                description = \
-                    'Checksum Mismatch: %s' % code
+            description = 'Invalid Length: %s (len %d)' % (code, len(code))
+        else:
+            # Attempt to decode even with a bad checksum
+            report_type, description = dsc.digits_to_alarmreport(code)
+            if not valid:
+                description += ' -- Checksum Mismatch! %s' % code
 
         decoded_events.append(create_event(report_type,
                                            description,
