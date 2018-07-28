@@ -24,7 +24,7 @@ from alarm_central_station_receiver.json_ipc import send_client_msg
 
 def check_running_root():
     if geteuid() != 0:
-        sys.stderr.write("Error: Alarmd must run as root - exiting\n")
+        sys.stderr.write("Error: alarm-ctl must run as root - exiting\n")
         sys.exit(-1)
 
 
@@ -41,8 +41,8 @@ on the keypad, or with the regular arm command.
 
     parser.add_argument('command', choices=['arm', 'disarm', 'auto-arm', 'auto-disarm', 'status', 'history'],
                         help=help_text)
-    parser.add_argument('--start-index', type=int)
-    parser.add_argument('--end-index', type=int)
+    parser.add_argument('--offset', type=int)
+    parser.add_argument('--limit', type=int)
 
     args = parser.parse_args()
     check_running_root()
@@ -50,13 +50,13 @@ on the keypad, or with the regular arm command.
     request_msg = {'command': args.command}
 
     if args.command == 'history':
-        if args.start_index == None or args.end_index == None:
+        if args.offset == None or args.limit == None:
             sys.stderr.write(
-                'Error: start-index and end-index required with history command\n')
+                'Error: offest and limit required with history command\n')
             return -1
 
-        options = {'start_idx': args.start_index,
-                   'end_idx': args.end_index
+        options = {'offset': args.offset,
+                   'limit': args.limit
                    }
         request_msg['options'] = options
 
