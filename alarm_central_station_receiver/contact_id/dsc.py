@@ -96,8 +96,8 @@ def create_event_description(event_type, event):
         event_type_name = 'S'
         description += ' Status'
     else:
-        event_type_name = event_type
-        description += 'Unknown Event Type'
+        event_type_name = 'U'
+        description += 'Unknown Event Type (%s)' % event_type
 
     return event_type_name, description
 
@@ -125,8 +125,8 @@ def digits_to_alarmreport(code):
     event_code = code[7:10]
     sensor_code = code[12:15]
 
-    event_type_name = event_type
-    description = 'Unknown Event'
+    event_type_name = 'U'
+    description = 'Unknown Event - %s' % code
     extra_desc = ''
 
     event = EVENTS.get(event_code + sensor_code)

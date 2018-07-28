@@ -38,14 +38,14 @@ def parse_alarm_codes(code_str):
         # when sending the last checksum digit when its above 'c'
         if len(code) == 15:
             # XXX hack - Tigerjet can't detect the highest DTMF code of 15
-            if checksum(code) == 0:
+            if calc_checksum(code) == 0:
                 code += 'f'
 
             # XXX hack - Tigerjet can't detect the high DTMF code of 14
-            if checksum(code) == 1:
+            if calc_checksum(code) == 1:
                 code += 'e'
 
-            if checksum(code) == 2:
+            if calc_checksum(code) == 2:
                 code += 'd'
 
         codes.append((code, calc_checksum(code) == 0))
