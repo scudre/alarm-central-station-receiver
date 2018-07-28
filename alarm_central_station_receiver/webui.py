@@ -65,12 +65,15 @@ def set_alarm_status():
 def get_alarm_history():
     offset = int(request.args.get('offset', 0))
     limit = int(request.args.get('limit', 10))
-    if offset < 0 or limit < 0:
-        abort_json('limit and offset must be > 0', 422)
+    if offset < 0:
+        abort_json('offset must be 0 or greater', 422)
+
+    if limit < 1:
+        abort_json('limit must be 1 or greater', 422)
 
     rsp = send_request({'command': 'history',
-                        'options': {'start_idx': offset,
-                                     'end_idx': offset + limit}
+                        'options': {'offset': offset,
+                                    'limit': limit}
                         })
 
     return jsonify(history=rsp)

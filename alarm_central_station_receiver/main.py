@@ -141,18 +141,17 @@ def process_sock_request(sockfd, alarm_system):
             }
         elif command in ['history']:
             options = msg.get('options')
-            start_idx = options.get('start_idx', 0)
-            end_idx = options.get('end_idx', 0)
-            error = False
+            offset = options.get('offset', 0)
+            limit = options.get('limit', 1) + offset
 
-            if start_idx >= end_idx:
-                rsp = {'error': 'Start index must be less than end index'}
-            elif start_idx < 0 or end_idx < 0:
-                rsp = {'error': 'Indexes must be greater than 0'}
+            if offset < 0:
+                rsp = {'error': 'Offset must be 0 or greater'}
+            elif limit < 1:
+                rsp = {'error': 'Limit must be 1 or greater'}
             else:
                 rsp = {
                     'error': False,
-                    'response': alarm_system.alarm.history[::-1][start_idx:end_idx]
+                    'response': alarm_system.alarm.history[::-1][offset:limit]
                 }
         else:
             rsp = {'error': 'Invalid command %s' % command}
