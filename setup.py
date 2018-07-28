@@ -18,7 +18,8 @@ setup(
     entry_points={
         'console_scripts': [
             'alarmd=alarm_central_station_receiver.main:main',
-            'alarm-ctl=alarm_central_station_receiver.alarm_ctl:main'
+            'alarm-ctl=alarm_central_station_receiver.alarm_ctl:main',
+            'alarmd-webui=alarm_central_station_receiver.webui:main'
         ]
     },
 
@@ -28,6 +29,7 @@ setup(
         'requests'
     ],
     extras_require={
-        'RPI': ['RPi.GPIO']
+        'RPI': ['RPi.GPIO'],
+        'webui': 'flask'
     }
 )

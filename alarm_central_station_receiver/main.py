@@ -125,10 +125,34 @@ def process_sock_request(sockfd, alarm_system):
         auto_arm = True if 'auto' in command else False
         if command in ['arm', 'auto-arm']:
             status = alarm_system.arm(auto_arm)
-            rsp = {'error': False, 'status': status}
+            rsp = {'error': False, 'response': status}
         elif command in ['disarm', 'auto-disarm']:
             status = alarm_system.disarm(auto_arm)
-            rsp = {'error': False, 'status': status}
+            rsp = {'error': False, 'response': status}
+        elif command in ['status']:
+            rsp = {
+                'error': False,
+                'response': {
+                    'arm_status': alarm_system.alarm.arm_status,
+                    'arm_status_time': alarm_system.alarm.arm_status_time,
+                    'auto_arm': alarm_system.alarm.auto_arm,
+                    'system_status': alarm_system.alarm.system_status
+                }
+            }
+        elif command in ['history']:
+            options = msg.get('options')
+            offset = options.get('offset', 0)
+            limit = options.get('limit', 1) + offset
+
+            if offset < 0:
+                rsp = {'error': 'Offset must be 0 or greater'}
+            elif limit < 1:
+                rsp = {'error': 'Limit must be 1 or greater'}
+            else:
+                rsp = {
+                    'error': False,
+                    'response': alarm_system.alarm.history[::-1][offset:limit]
+                }
         else:
             rsp = {'error': 'Invalid command %s' % command}
 

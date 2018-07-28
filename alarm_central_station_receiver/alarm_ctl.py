@@ -17,13 +17,14 @@ limitations under the License.
 import argparse
 from os import geteuid
 import sys
+import json
 
 from alarm_central_station_receiver.json_ipc import send_client_msg
 
 
 def check_running_root():
     if geteuid() != 0:
-        sys.stderr.write("Error: Alarmd must run as root - exiting\n")
+        sys.stderr.write("Error: alarm-ctl must run as root - exiting\n")
         sys.exit(-1)
 
 
@@ -38,23 +39,46 @@ the system daily, but want to skip disarming if the system was armed
 on the keypad, or with the regular arm command.
 """
 
-    parser.add_argument('command', choices=['arm', 'disarm', 'auto-arm', 'auto-disarm'],
+    parser.add_argument('command', choices=['arm', 'disarm', 'auto-arm', 'auto-disarm', 'status', 'history'],
                         help=help_text)
+    parser.add_argument('--offset', type=int)
+    parser.add_argument('--limit', type=int)
 
     args = parser.parse_args()
     check_running_root()
 
-    rsp, serr = send_client_msg({'command': args.command})
+    request_msg = {'command': args.command}
+
+    if args.command == 'history':
+        if args.offset == None or args.limit == None:
+            sys.stderr.write(
+                'Error: offest and limit required with history command\n')
+            return -1
+
+        options = {'offset': args.offset,
+                   'limit': args.limit
+                   }
+        request_msg['options'] = options
+
+    rsp, serr = send_client_msg(request_msg)
     if serr:
         sys.stderr.write('%s\n' % serr)
         return -1
 
-    error_msg = rsp.get('error')
+    error_msg = rsp.pop('error')
     if error_msg:
         sys.stderr.write('Error: %s\n' % error_msg)
         return -1
 
-    sys.stdout.write('%s\n' % rsp.get('status'))
+    if args.command == 'status':
+        for key, value in rsp.get('response').items():
+            sys.stdout.write('%s: %s\n' %
+                             (key.replace('_', ' ').title(), str(value).title()))
+    elif args.command == 'history':
+        sys.stdout.write('%s\n' % json.dumps(rsp.get('response'), indent=4))
+    else:
+        sys.stdout.write('%s\n' % rsp.get('response'))
+
     return 0
 
 
