@@ -18,12 +18,13 @@ import time
 from alarm_central_station_receiver.contact_id import dsc
 
 
-def create_event(rtype, description, eid):
+def create_event(rtype, event, description, raw_code):
     return {
         'timestamp': time.time(),
         'type': rtype,
+        'event': event,
         'description': description,
-        'id': eid,
+        'id': raw_code,
     }
 
 
@@ -33,14 +34,16 @@ def decode(raw_events):
     for code, valid in raw_events:
         if len(code) < 15:
             report_type = 'U'
+            event = ''
             description = 'Invalid Length: %s (len %d)' % (code, len(code))
         else:
             # Attempt to decode even with a bad checksum
-            report_type, description = dsc.digits_to_alarmreport(code)
+            report_type, event, description = dsc.digits_to_alarmreport(code)
             if not valid:
                 description += ' -- Checksum Mismatch! %s' % code
 
         decoded_events.append(create_event(report_type,
+                                           event,
                                            description,
                                            code))
     return decoded_events

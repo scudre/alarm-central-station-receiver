@@ -66,7 +66,7 @@ EVENTS = {
     '412000': {'1': ('MA', 'DLS Lead Out')},
     '453000': {'1': ('O', 'Late to Open')},
     '456000': {'1': ('C', 'Partial Arming')},
-    '458000': {'1': ('A', 'Disarm After Alarm')},
+    '458000': {'1': ('E', 'Disarm After Alarm')},
     '459UUU': {'1': ('A', 'Alarm Within 2 min of Arming')},
     '461000': {'1': ('T', 'Keypad Lockout')},
     '570ZZZ': {'1': ('C', 'Zone Bypass')},
@@ -150,4 +150,4 @@ def digits_to_alarmreport(code):
 
         description += extra_desc
 
-    return event_type_name, description
+    return event_type_name, event_code + sensor_code, description
