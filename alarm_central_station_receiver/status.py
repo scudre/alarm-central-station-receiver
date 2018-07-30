@@ -31,8 +31,12 @@ class AlarmStatus(object):
 
     def __setattr__(self, attr, value):
         attributes = [
-            'arm_status', 'arm_status_time', 'auto_arm', 'history', 'system_status', 'active_events'
-        ]
+            'arm_status',
+            'arm_status_time',
+            'auto_arm',
+            'history',
+            'system_status',
+            'active_events']
 
         if attr in attributes:
             self._datastore[attr] = value
@@ -91,6 +95,18 @@ class AlarmStatus(object):
         else:
             self.system_status = 'ok'
 
+    def is_auto_event(self, event):
+        return self.auto_arm and self.arm_status in [
+            'arming', 'disarming'] and event['type'] in ['O', 'C']
+
+    def mark_auto_event(self, event):
+        if not self.is_auto_event(event):
+            return None
+
+        event['type'] = 'A' + event['type']
+        event['description'] = 'Automatic ' + event['description']
+        return event
+
     def update_arm_status(self, event):
         """
         Updates alarm mode to be either 'disarmed' or 'armed' depending on
@@ -98,9 +114,10 @@ class AlarmStatus(object):
         """
         report_type = event['type']
         timestamp = event['timestamp']
-        if report_type in ['O', 'C'] and timestamp > self.arm_status_time:
+        if report_type in ['AO', 'O', 'AC',
+                           'C'] and timestamp > self.arm_status_time:
             self.arm_status_time = timestamp
-            if report_type == 'O':
+            if report_type in ['AO', 'O']:
                 self.arm_status = 'disarmed'
                 self.auto_arm = False
             else:
@@ -116,7 +133,7 @@ class AlarmStatus(object):
 
         # Events to skip tracking.  Opening/Closings are tracked in arm_status, and
         # U is for unknown events which we don't know what to do with
-        ignore_list = ['O', 'C', 'U']
+        ignore_list = ['AO', 'O', 'AC', 'C', 'U']
         if not report_type or report_type in ignore_list:
             return
 
@@ -127,10 +144,20 @@ class AlarmStatus(object):
             self.active_events[report_id] = event
 
     def add_new_events(self, events):
-        for event in events:
+        notify_events = []
+        for raw_event in events:
+            event = self.mark_auto_event(raw_event)
+            # If no event was returned, the raw event is not an auto arm/disarm
+            if not event:
+                event = raw_event
+                # Skip notification for auto arm/disarm
+                notify_events.append(event)
+
             self.history.append(event)
             self.update_arm_status(event)
             self.update_active_events(event)
 
         self.update_system_status()
         self.save_data()
+
+        return notify_events
