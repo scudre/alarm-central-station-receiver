@@ -14,14 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
-import os.path
 
 from json import load, dump
-from os import remove
+from os import remove, path
 from shutil import move
 
 from alarm_central_station_receiver.singleton import Singleton
 from alarm_central_station_receiver.config import AlarmConfig
+
+
+def log_event(event):
+    skip = ''
+    if event['type'] in ['AO', 'AC']:
+        skip = 'Automatic event, skipping notification'
+
+    logging.info('%s: %s - %s', event['type'], event['description'], skip)
 
 
 @Singleton
@@ -77,7 +84,7 @@ class AlarmStatus(object):
             move(tmp_path, self.datastore_path)
         except (IOError, OSError) as exc:
             logging.error('Unable to save alarm data: %s', str(exc))
-            if os.path.isfile(tmp_path):
+            if path.isfile(tmp_path):
                 remove(tmp_path)
 
     def update_system_status(self):
@@ -144,15 +151,21 @@ class AlarmStatus(object):
             self.active_events[report_id] = event
 
     def add_new_events(self, events):
+        if not events:
+            logging.info('Home Alarm Calling: Empty Code List!')
+        else:
+            logging.info('Home Alarm Calling')
+
         notify_events = []
         for raw_event in events:
             event = self.mark_auto_event(raw_event)
-            # If no event was returned, the raw event is not an auto arm/disarm
             if not event:
+                # If no event was returned, the raw event is not an auto arm/disarm.
+                # Only send notifications for non-auto arm/disarms
                 event = raw_event
-                # Skip notification for auto arm/disarm
                 notify_events.append(event)
 
+            log_event(event)
             self.history.append(event)
             self.update_arm_status(event)
             self.update_active_events(event)

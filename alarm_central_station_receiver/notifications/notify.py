@@ -20,19 +20,6 @@ import multiprocessing
 from alarm_central_station_receiver.notifications.notifiers import emailer, pushover
 
 
-def log_events(events):
-    if not events:
-        logging.info('Empty Code List!')
-    else:
-        messages = []
-        for event in events:
-            rtype = event.get('type')
-            desc = event.get('description')
-            messages.append('%s: %s' % (rtype, desc))
-
-        logging.info("Home Alarm Calling:\n%s", ', '.join(messages))
-
-
 def notify_test():
     events = [
         {
@@ -54,7 +41,6 @@ def notify_test():
 
 def notify_async(events):
     logging.info("Sending notifications...")
-    log_events(events)
     emailer.notify(events)
     pushover.notify(events)
 
