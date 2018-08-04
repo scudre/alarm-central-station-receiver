@@ -145,19 +145,19 @@ class AlarmStatus(object):
         it from the `self.active_events` list.
         """
         report_type = event['type']
-        report_id = event['id']
+        report_code = event['event']
 
         # Events to skip tracking.  Opening/Closings are tracked in arm_status, and
         # U is for unknown events which we don't know what to do with
-        ignore_list = ['AO', 'O', 'AC', 'C', 'U']
+        ignore_list = ['E', 'AO', 'O', 'AC', 'C', 'U']
         if not report_type or report_type in ignore_list:
             return
 
         if report_type == 'R':
             # Restoral, clear any matching events
-            self.active_events.pop(report_id, None)
+            self.active_events.pop(report_code, None)
         else:
-            self.active_events[report_id] = event
+            self.active_events[report_code] = event
 
     def add_new_events(self, events):
         if not events:
