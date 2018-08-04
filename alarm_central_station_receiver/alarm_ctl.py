@@ -34,7 +34,7 @@ def main():
     help_text = """Arm or disarm the alarm system
 
 The auto-disarm command only disarms, if auto-arm was used to arm.
-This is useful if you want to have a cron job automatically arm/disrm 
+This is useful if you want to have a cron job automatically arm/disrm
 the system daily, but want to skip disarming if the system was armed
 on the keypad, or with the regular arm command.
 """
@@ -50,7 +50,7 @@ on the keypad, or with the regular arm command.
     request_msg = {'command': args.command}
 
     if args.command == 'history':
-        if args.offset == None or args.limit == None:
+        if args.offset is None or args.limit is None:
             sys.stderr.write(
                 'Error: offest and limit required with history command\n')
             return -1
