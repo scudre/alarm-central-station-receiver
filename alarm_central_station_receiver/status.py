@@ -31,6 +31,19 @@ def log_event(event):
     logging.info('%s: %s %s', event['type'], event['description'], skip)
 
 
+def should_notify(event):
+    """
+    See if notification should be sent for this event.
+
+    Depends on user's configuration of notify_auto_events.  If false
+    then notifications are not sent for auto arm/disarm events.  If a user is
+    using cron to arm/disarm the system automatically on a regular basis
+    these event notifiations can get noisy.
+    """
+    return event['type'] not in ['AO', 'AC'] or AlarmConfig.get(
+        'Main', 'notify_auto_events')
+
+
 @Singleton
 class AlarmStatus(object):
     def __getattr__(self, attr):
@@ -102,16 +115,12 @@ class AlarmStatus(object):
         else:
             self.system_status = 'ok'
 
-    def is_auto_event(self, event):
-        return self.auto_arm and self.arm_status in [
-            'arming', 'disarming'] and event['type'] in ['O', 'C']
-
     def mark_auto_event(self, event):
-        if not self.is_auto_event(event):
-            return None
+        if self.auto_arm and self.arm_status in [
+                'arming', 'disarming'] and event['type'] in ['O', 'C']:
+            event['type'] = 'A' + event['type']
+            event['description'] = 'Automatic ' + event['description']
 
-        event['type'] = 'A' + event['type']
-        event['description'] = 'Automatic ' + event['description']
         return event
 
     def update_arm_status(self, event):
@@ -159,16 +168,13 @@ class AlarmStatus(object):
         notify_events = []
         for raw_event in events:
             event = self.mark_auto_event(raw_event)
-            if not event:
-                # If no event was returned, the raw event is not an auto arm/disarm.
-                # Only send notifications for non-auto arm/disarms
-                event = raw_event
-                notify_events.append(event)
-
             log_event(event)
             self.history.append(event)
             self.update_arm_status(event)
             self.update_active_events(event)
+
+            if should_notify(event):
+                notify_events.append(event)
 
         self.update_system_status()
         self.save_data()

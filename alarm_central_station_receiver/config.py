@@ -23,7 +23,7 @@ CONFIG_MAP = {
         'keys': {
             'phone_number': True,
             'data_file_path': True,
-
+            'notify_auto_events': True,
         }
     },
 
