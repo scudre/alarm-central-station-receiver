@@ -49,5 +49,9 @@ def notify(events):
     """
     Asynchronously send out configured notifications
     """
+    if not events:
+        logging.info("No events for notification")
+        return
+
     notify_proc = multiprocessing.Process(target=notify_async, args=(events,))
     notify_proc.start()
