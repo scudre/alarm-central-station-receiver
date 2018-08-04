@@ -26,9 +26,9 @@ from alarm_central_station_receiver.config import AlarmConfig
 def log_event(event):
     skip = ''
     if event['type'] in ['AO', 'AC']:
-        skip = 'Automatic event, skipping notification'
+        skip = '- Automatic event, skipping notification'
 
-    logging.info('%s: %s - %s', event['type'], event['description'], skip)
+    logging.info('%s: %s %s', event['type'], event['description'], skip)
 
 
 @Singleton
