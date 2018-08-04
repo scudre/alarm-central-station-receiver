@@ -14,14 +14,34 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
-import os.path
 
 from json import load, dump
-from os import remove
+from os import remove, path
 from shutil import move
 
 from alarm_central_station_receiver.singleton import Singleton
 from alarm_central_station_receiver.config import AlarmConfig
+
+
+def log_event(event):
+    skip = ''
+    if event['type'] in ['AO', 'AC']:
+        skip = '- Automatic event, skipping notification'
+
+    logging.info('%s: %s %s', event['type'], event['description'], skip)
+
+
+def should_notify(event):
+    """
+    See if notification should be sent for this event.
+
+    Depends on user's configuration of notify_auto_events.  If false
+    then notifications are not sent for auto arm/disarm events.  If a user is
+    using cron to arm/disarm the system automatically on a regular basis
+    these event notifiations can get noisy.
+    """
+    return event['type'] not in ['AO', 'AC'] or AlarmConfig.get(
+        'Main', 'notify_auto_events')
 
 
 @Singleton
@@ -31,8 +51,12 @@ class AlarmStatus(object):
 
     def __setattr__(self, attr, value):
         attributes = [
-            'arm_status', 'arm_status_time', 'auto_arm', 'history', 'system_status', 'active_events'
-        ]
+            'arm_status',
+            'arm_status_time',
+            'auto_arm',
+            'history',
+            'system_status',
+            'active_events']
 
         if attr in attributes:
             self._datastore[attr] = value
@@ -73,7 +97,7 @@ class AlarmStatus(object):
             move(tmp_path, self.datastore_path)
         except (IOError, OSError) as exc:
             logging.error('Unable to save alarm data: %s', str(exc))
-            if os.path.isfile(tmp_path):
+            if path.isfile(tmp_path):
                 remove(tmp_path)
 
     def update_system_status(self):
@@ -91,6 +115,14 @@ class AlarmStatus(object):
         else:
             self.system_status = 'ok'
 
+    def mark_auto_event(self, event):
+        if self.auto_arm and self.arm_status in [
+                'arming', 'disarming'] and event['type'] in ['O', 'C']:
+            event['type'] = 'A' + event['type']
+            event['description'] = 'Automatic ' + event['description']
+
+        return event
+
     def update_arm_status(self, event):
         """
         Updates alarm mode to be either 'disarmed' or 'armed' depending on
@@ -98,9 +130,10 @@ class AlarmStatus(object):
         """
         report_type = event['type']
         timestamp = event['timestamp']
-        if report_type in ['O', 'C'] and timestamp > self.arm_status_time:
+        if report_type in ['AO', 'O', 'AC',
+                           'C'] and timestamp > self.arm_status_time:
             self.arm_status_time = timestamp
-            if report_type == 'O':
+            if report_type in ['AO', 'O']:
                 self.arm_status = 'disarmed'
                 self.auto_arm = False
             else:
@@ -116,7 +149,7 @@ class AlarmStatus(object):
 
         # Events to skip tracking.  Opening/Closings are tracked in arm_status, and
         # U is for unknown events which we don't know what to do with
-        ignore_list = ['O', 'C', 'U']
+        ignore_list = ['AO', 'O', 'AC', 'C', 'U']
         if not report_type or report_type in ignore_list:
             return
 
@@ -127,10 +160,23 @@ class AlarmStatus(object):
             self.active_events[report_id] = event
 
     def add_new_events(self, events):
-        for event in events:
+        if not events:
+            logging.info('Home Alarm Calling: Empty Code List!')
+        else:
+            logging.info('Home Alarm Calling')
+
+        notify_events = []
+        for raw_event in events:
+            event = self.mark_auto_event(raw_event)
+            log_event(event)
             self.history.append(event)
             self.update_arm_status(event)
             self.update_active_events(event)
 
+            if should_notify(event):
+                notify_events.append(event)
+
         self.update_system_status()
         self.save_data()
+
+        return notify_events

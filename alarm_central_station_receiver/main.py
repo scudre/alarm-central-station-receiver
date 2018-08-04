@@ -112,8 +112,8 @@ def notification_test_exit():
 def process_alarm_event(alarmhid, phone_number, alarm_status):
     raw_events = callup.handle_alarm_calling(alarmhid, phone_number)
     events = decoder.decode(raw_events)
-    alarm_status.add_new_events(events)
-    notify(events)
+    notify_events = alarm_status.add_new_events(events)
+    notify(notify_events)
 
 
 def process_sock_request(sockfd, alarm_system):
