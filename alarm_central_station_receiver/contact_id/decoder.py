@@ -16,16 +16,7 @@ limitations under the License.
 import time
 
 from alarm_central_station_receiver.contact_id import dsc
-
-
-def create_event(rtype, event, description, raw_code):
-    return {
-        'timestamp': time.time(),
-        'type': rtype,
-        'event': event,
-        'description': description,
-        'id': raw_code,
-    }
+from alarm_central_station_receiver.events import create_event
 
 
 def decode(raw_events):

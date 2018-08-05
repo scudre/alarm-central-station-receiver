@@ -19,6 +19,8 @@ import time
 from alarm_central_station_receiver.singleton import Singleton
 from alarm_central_station_receiver.config import AlarmConfig
 from alarm_central_station_receiver.status import AlarmStatus
+from alarm_central_station_receiver.events import create_event
+
 
 try:
     import RPi.GPIO as GPIO
@@ -110,6 +112,7 @@ class AlarmSystem(object):
         # If the system wasn't fully armed, there won't be an event
         # from the alarm indicating arm/disarm
         if self.alarm.arm_status == 'arming':
+            self.alarm.auto_arm = False
             self.alarm.arm_status = 'disarmed'
             self.alarm.auto_arm = False
         else:
@@ -119,3 +122,18 @@ class AlarmSystem(object):
         self.alarm.save_data()
 
         return status
+
+    def abort_arm_disarm(self):
+        if self.alarm.arm_status == 'disarming':
+            self.alarm.arm_status = 'armed'
+            description = 'Unable to disarm system.'
+            event_code = '0001'
+        elif self.alarm.arm_status == 'arming':
+            self.alarm.arm_status = 'disarmed'
+            description = 'Unable to arm system.'
+            event_code = '0002'
+
+        self.alarm.save_data()
+
+        events = [create_event('E', event_code, description, event_code)]
+        return self.alarm.add_new_events(events)

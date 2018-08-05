@@ -109,6 +109,12 @@ def notification_test_exit():
     sys.exit(0)
 
 
+def process_alarm_timeout(alarm_system):
+    logging.info('Arm/Disarm request timeout!')
+    notify_events = alarm_system.abort_arm_disarm()
+    notify(notify_events)
+
+
 def process_alarm_event(alarmhid, phone_number, alarm_status):
     raw_events = callup.handle_alarm_calling(alarmhid, phone_number)
     events = decoder.decode(raw_events)
@@ -163,6 +169,11 @@ def process_sock_request(sockfd, alarm_system):
         logging.error("Timed out receiving data from client")
 
 
+def get_alarm_timeout(alarm_system):
+    return 300 if alarm_system.alarm.arm_status in [
+        'arming', 'disarming'] else None
+
+
 def alarm_main_loop():
     phone_number = AlarmConfig.config.get('Main', 'phone_number')
     alarm_status = AlarmStatus()
@@ -171,14 +182,21 @@ def alarm_main_loop():
     with open(tigerjet.hidraw_path(), 'rb') as alarmhid:
         with json_ipc.ServerSock() as sockfd:
             logging.info("Ready, listening for alarms")
+            timeout = get_alarm_timeout(alarm_system)
             while True:
                 read = []
-                read, _, _ = select([alarmhid, sockfd], [], [])
+                read, _, _ = select([alarmhid, sockfd], [], [], timeout)
                 if alarmhid in read:
                     process_alarm_event(alarmhid, phone_number, alarm_status)
 
                 if sockfd in read:
                     process_sock_request(sockfd, alarm_system)
+
+                if not read:
+                    # Arm/disarm event from alarm system never came
+                    process_alarm_timeout(alarm_system)
+
+                timeout = get_alarm_timeout(alarm_system)
 
     return 0
 
