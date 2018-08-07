@@ -41,7 +41,7 @@ def should_notify(event):
     these event notifiations can get noisy.
     """
     return event['type'] not in ['AO', 'AC'] or AlarmConfig.get(
-        'Main', 'notify_auto_events')
+        'Main', 'notify_auto_events').lower() in ("yes", "1", "true")
 
 
 @Singleton
