@@ -59,7 +59,7 @@ CONFIG_MAP = {
 
 
 class AlarmConfig(object):
-    loaded_config = {}
+    config = None
 
     @staticmethod
     def exists(path):
@@ -67,18 +67,8 @@ class AlarmConfig(object):
 
     @classmethod
     def load(klass, path):
-        config = configparser.ConfigParser()
-        config.read(path)
-        klass.loaded_config = {key: dict(config.items(key))
-                               for key in config.sections()}
-
-    @classmethod
-    def get(klass, *argv):
-        config = klass.loaded_config
-        for arg in argv:
-            config = config.get(arg, {})
-
-        return config
+        klass.config = configparser.ConfigParser()
+        klass.config.read(path)
 
     @staticmethod
     def validate(config):
