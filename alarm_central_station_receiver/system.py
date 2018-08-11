@@ -71,7 +71,7 @@ class AlarmSystem(object):
 
     def arm(self, auto_arm):
         if not self.valid_setup():
-            return
+            return None
 
         if self.alarm.arm_status in ['armed', 'arming']:
             status = 'System already %s, ignoring request' % self.alarm.arm_status
@@ -90,7 +90,7 @@ class AlarmSystem(object):
 
     def disarm(self, auto_arm):
         if not self.valid_setup():
-            return
+            return None
 
         if self.alarm.arm_status in ['disarming', 'disarmed']:
             status = 'System already %s, ignoring request' % self.alarm.arm_status
