@@ -129,6 +129,7 @@ class AlarmSystem(object):
             event_code = '0001'
         elif self.alarm.arm_status == 'arming':
             self.alarm.arm_status = 'disarmed'
+            self.alarm.auto_arm = False
             description = 'Unable to arm system.'
             event_code = '0002'
 
