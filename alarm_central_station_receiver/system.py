@@ -109,9 +109,9 @@ class AlarmSystem(object):
 
         # If the system wasn't fully armed, there won't be an event
         # from the alarm indicating arm/disrm
-        self.alarm.auto_arm = False
         if self.alarm.arm_status == 'arming':
             self.alarm.arm_status = 'disarmed'
+            self.alarm.auto_arm = False
         else:
             self.alarm.arm_status = 'disarming'
 
