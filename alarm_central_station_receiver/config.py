@@ -70,23 +70,22 @@ class AlarmConfig(object):
         klass.config = configparser.ConfigParser()
         klass.config.read(path)
 
-    @staticmethod
-    def validate(config):
+    @classmethod
+    def validate(klass):
         missing_config = []
 
         for sec_name, section in CONFIG_MAP.items():
-            optional = not section.get('required')
-            missing = not config.get(sec_name)
+            required = section.get('required')
+            missing = not klass.config.get(sec_name)
 
             # If an entire section is missing, and its an optional
             # section, skip validation.
-            if optional and missing:
+            if missing and not required:
                 continue
 
             for key, key_required in section.get('keys', {}).items():
-                cfg_value = config.get(sec_name, {}).get(key, '')
-
-                if key_required and cfg_value == '':
+                cfg_value = klass.config.get(sec_name, key, fallback=None)
+                if key_required and not cfg_value:
                     missing_config.append('[%s] Section: %s' % (sec_name, key))
 
         return missing_config

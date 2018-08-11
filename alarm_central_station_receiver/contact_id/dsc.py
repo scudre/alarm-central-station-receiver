@@ -103,7 +103,9 @@ def create_event_description(event_type, event):
 
 
 def get_zone_name(sensor_code):
-    zone_name = AlarmConfig.get('ZoneMapping', sensor_code)
+    zone_name = AlarmConfig.config.get('ZoneMapping',
+                                       sensor_code,
+                                       fallback=None)
     if not zone_name:
         zone_name = 'Zone %s' % sensor_code
 

@@ -40,8 +40,9 @@ def should_notify(event):
     using cron to arm/disarm the system automatically on a regular basis
     these event notifiations can get noisy.
     """
-    return event['type'] not in ['AO', 'AC'] or AlarmConfig.get(
-        'Main', 'notify_auto_events').lower() in ("yes", "1", "true")
+    return event['type'] not in [
+        'AO', 'AC'] or AlarmConfig.config.getboolean(
+        'Main', 'notify_auto_events')
 
 
 @Singleton
@@ -64,7 +65,7 @@ class AlarmStatus(object):
             super(AlarmStatus._klass, self).__setattr__(attr, value)
 
     def __init__(self):
-        self.datastore_path = AlarmConfig.get('Main', 'data_file_path')
+        self.datastore_path = AlarmConfig.config.get('Main', 'data_file_path')
         if not self.load_data():
             self.arm_status = 'disarmed'
             self.arm_status_time = 0

@@ -62,7 +62,7 @@ class AlarmSystem(object):
         GPIO.setup(self.pin, GPIO.OUT)
 
     def __init__(self):
-        self.pin = int(AlarmConfig.get('RpiArmDisarm', 'gpio_pin'))
+        self.pin = AlarmConfig.config.getint('RpiArmDisarm', 'gpio_pin')
         if not self.valid_setup():
             return
 
