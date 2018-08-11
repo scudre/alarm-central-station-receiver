@@ -59,7 +59,7 @@ CONFIG_MAP = {
 
 
 class AlarmConfig(object):
-    loaded_config = {}
+    config = None
 
     @staticmethod
     def exists(path):
@@ -67,36 +67,25 @@ class AlarmConfig(object):
 
     @classmethod
     def load(klass, path):
-        config = configparser.ConfigParser()
-        config.read(path)
-        klass.loaded_config = {key: dict(config.items(key))
-                               for key in config.sections()}
+        klass.config = configparser.ConfigParser()
+        klass.config.read(path)
 
     @classmethod
-    def get(klass, *argv):
-        config = klass.loaded_config
-        for arg in argv:
-            config = config.get(arg, {})
-
-        return config
-
-    @staticmethod
-    def validate(config):
+    def validate(klass):
         missing_config = []
 
         for sec_name, section in CONFIG_MAP.items():
-            optional = not section.get('required')
-            missing = not config.get(sec_name)
+            required = section.get('required')
+            missing = sec_name not in klass.config
 
             # If an entire section is missing, and its an optional
             # section, skip validation.
-            if optional and missing:
+            if missing and not required:
                 continue
 
             for key, key_required in section.get('keys', {}).items():
-                cfg_value = config.get(sec_name, {}).get(key, '')
-
-                if key_required and cfg_value == '':
+                cfg_value = klass.config.get(sec_name, key, fallback=None)
+                if key_required and not cfg_value:
                     missing_config.append('[%s] Section: %s' % (sec_name, key))
 
         return missing_config

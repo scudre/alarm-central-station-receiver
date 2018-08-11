@@ -75,7 +75,7 @@ def create_or_check_required_config(path):
         AlarmConfig.create(path)
 
     AlarmConfig.load(path)
-    missing_config = AlarmConfig.validate(AlarmConfig.get())
+    missing_config = AlarmConfig.validate()
     if missing_config:
         logging.error(
             'The following required configuration is missing from %s\n\n', path)
@@ -164,7 +164,7 @@ def process_sock_request(sockfd, alarm_system):
 
 
 def alarm_main_loop():
-    phone_number = AlarmConfig.get('Main', 'phone_number')
+    phone_number = AlarmConfig.config.get('Main', 'phone_number')
     alarm_status = AlarmStatus()
     alarm_system = AlarmSystem()
 

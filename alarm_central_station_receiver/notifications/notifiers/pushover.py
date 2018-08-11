@@ -30,18 +30,18 @@ def create_message(events):
 def create_params(events):
     timestamp, message = create_message(events)
     data = {
-        'token': AlarmConfig.get('PushoverNotification', 'token'),
-        'user': AlarmConfig.get('PushoverNotification', 'user'),
+        'token': AlarmConfig.config.get('PushoverNotification', 'token'),
+        'user': AlarmConfig.config.get('PushoverNotification', 'user'),
         'timestamp': timestamp,
         'title': 'Alarm Notification',
         'message': message,
     }
 
-    device = AlarmConfig.get('PushoverNotification', 'device')
+    device = AlarmConfig.config.get('PushoverNotification', 'device', fallback=None)
     if device:
         data['device'] = device
 
-    priority = AlarmConfig.get('PushoverNotification', 'priority')
+    priority = AlarmConfig.config.get('PushoverNotification', 'priority', fallback=None)
     if priority:
         data['priority'] = priority
 
@@ -52,7 +52,7 @@ def notify(events):
     if not events:
         return
 
-    if not AlarmConfig.get('PushoverNotification'):
+    if 'PushoverNotification' not in AlarmConfig.config:
         return
 
     logging.info("Sending pushover notification...")

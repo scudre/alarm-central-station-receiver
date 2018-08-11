@@ -62,7 +62,7 @@ class AlarmSystem(object):
         GPIO.setup(self.pin, GPIO.OUT)
 
     def __init__(self):
-        self.pin = int(AlarmConfig.get('RpiArmDisarm', 'gpio_pin'))
+        self.pin = AlarmConfig.config.getint('RpiArmDisarm', 'gpio_pin')
         if not self.valid_setup():
             return
 
@@ -71,7 +71,7 @@ class AlarmSystem(object):
 
     def arm(self, auto_arm):
         if not self.valid_setup():
-            return
+            return None
 
         if self.alarm.arm_status in ['armed', 'arming']:
             status = 'System already %s, ignoring request' % self.alarm.arm_status
@@ -90,7 +90,7 @@ class AlarmSystem(object):
 
     def disarm(self, auto_arm):
         if not self.valid_setup():
-            return
+            return None
 
         if self.alarm.arm_status in ['disarming', 'disarmed']:
             status = 'System already %s, ignoring request' % self.alarm.arm_status
@@ -108,12 +108,13 @@ class AlarmSystem(object):
         self._trip_keyswitch()
 
         # If the system wasn't fully armed, there won't be an event
-        # from the alarm indicating arm/disrm
+        # from the alarm indicating arm/disarm
         if self.alarm.arm_status == 'arming':
             self.alarm.arm_status = 'disarmed'
             self.alarm.auto_arm = False
         else:
             self.alarm.arm_status = 'disarming'
+            self.alarm.auto_arm = auto_arm
 
         self.alarm.save_data()
 

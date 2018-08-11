@@ -44,17 +44,17 @@ def notify(events):
     if not events:
         return
 
-    if not AlarmConfig.get('EmailNotification'):
+    if 'EmailNotification' not in AlarmConfig.config:
         return
 
     logging.info("Sending email...")
-    username = AlarmConfig.get('EmailNotification', 'username')
-    password = AlarmConfig.get('EmailNotification', 'password')
-    to_addr = AlarmConfig.get('EmailNotification', 'notification_email')
-    subject = AlarmConfig.get('EmailNotification', 'notification_subject')
-    tls = AlarmConfig.get('EmailNotification', 'tls')
-    server = AlarmConfig.get('EmailNotification', 'server_address')
-    server_port = AlarmConfig.get('EmailNotification', 'port')
+    username = AlarmConfig.config.get('EmailNotification', 'username')
+    password = AlarmConfig.config.get('EmailNotification', 'password')
+    to_addr = AlarmConfig.config.get('EmailNotification', 'notification_email')
+    subject = AlarmConfig.config.get('EmailNotification', 'notification_subject')
+    tls = AlarmConfig.config.getboolean('EmailNotification', 'tls')
+    server = AlarmConfig.config.get('EmailNotification', 'server_address')
+    server_port = AlarmConfig.config.get('EmailNotification', 'port')
 
     msg = MIMEMultipart('alternative')
     msg['From'] = username
@@ -67,7 +67,7 @@ def notify(events):
     try:
         s = smtplib.SMTP(server, server_port)
         s.ehlo()
-        if tls.lower() in ("yes", "true", "t", "1"):
+        if tls:
             s.starttls()
         s.ehlo()
         s.login(username, password)
