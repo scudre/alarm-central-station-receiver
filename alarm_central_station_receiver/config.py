@@ -76,7 +76,7 @@ class AlarmConfig(object):
 
         for sec_name, section in CONFIG_MAP.items():
             required = section.get('required')
-            missing = not klass.config.get(sec_name)
+            missing = sec_name not in klass.config
 
             # If an entire section is missing, and its an optional
             # section, skip validation.
