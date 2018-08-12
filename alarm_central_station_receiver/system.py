@@ -132,6 +132,10 @@ class AlarmSystem(object):
             self.alarm.auto_arm = False
             description = 'Unable to Arm System'
             event_code = '0002'
+        else:
+            logging.info('Nothing to abort, system in %s',
+                         self.alarm.arm_status)
+            return []
 
         self.alarm.save_data()
 
