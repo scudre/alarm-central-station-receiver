@@ -125,12 +125,12 @@ class AlarmSystem(object):
     def abort_arm_disarm(self):
         if self.alarm.arm_status == 'disarming':
             self.alarm.arm_status = 'armed'
-            description = 'Unable to disarm system.'
+            description = 'Unable to Disarm System'
             event_code = '0001'
         elif self.alarm.arm_status == 'arming':
             self.alarm.arm_status = 'disarmed'
             self.alarm.auto_arm = False
-            description = 'Unable to arm system.'
+            description = 'Unable to Arm System'
             event_code = '0002'
 
         self.alarm.save_data()

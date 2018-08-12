@@ -78,7 +78,8 @@ def create_or_check_required_config(path):
     missing_config = AlarmConfig.validate()
     if missing_config:
         logging.error(
-            'The following required configuration is missing from %s\n\n', path)
+            'The following required configuration is missing from %s\n\n',
+            path)
         logging.error('\n'.join(missing_config))
         logging.error('\n\nExiting\n\n')
         sys.exit(-1)
@@ -97,7 +98,8 @@ def write_config_exit(config_path):
         AlarmConfig.create(config_path)
     else:
         logging.info(
-            'Configuration at %s already exists, skipping write\n', config_path)
+            'Configuration at %s already exists, skipping write\n',
+            config_path)
 
     sys.exit(0)
 
@@ -183,6 +185,8 @@ def alarm_main_loop():
         with json_ipc.ServerSock() as sockfd:
             logging.info("Ready, listening for alarms")
             timeout = get_alarm_timeout(alarm_system)
+            logging.debug('Timeout: %s', timeout)
+
             while True:
                 read = []
                 read, _, _ = select([alarmhid, sockfd], [], [], timeout)
@@ -197,6 +201,7 @@ def alarm_main_loop():
                     process_alarm_timeout(alarm_system)
 
                 timeout = get_alarm_timeout(alarm_system)
+                logging.debug('Timeout: %s', timeout)
 
     return 0
 
