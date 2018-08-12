@@ -162,9 +162,9 @@ class AlarmStatus(object):
 
     def add_new_events(self, events):
         if not events:
-            logging.info('Home Alarm Calling: Empty Code List!')
+            logging.info('No new events found!')
         else:
-            logging.info('Home Alarm Calling')
+            logging.info('New Events')
 
         notify_events = []
         for raw_event in events:
