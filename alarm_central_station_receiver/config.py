@@ -55,6 +55,14 @@ CONFIG_MAP = {
             'device': False
         }
     },
+
+    'Heartbeat': {
+        'required': False,
+        'keys': {
+            'url': True,
+            'interval': True
+        }
+    },
 }
 
 
