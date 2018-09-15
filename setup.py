@@ -1,4 +1,12 @@
-from setuptools import setup, find_packages, Extension
+import sys
+from distutils.version import StrictVersion
+from setuptools import setup, find_packages, Extension, __version__
+
+if StrictVersion(__version__) < StrictVersion('20.2'):
+    print('Your setuptools version is too old and does not support '
+          'PEP 508. Please upgrade setuptools to 20.2+ and repeat the '
+          'installation.')
+    sys.exit(1)
 
 pytjapi = Extension(
     'pytjapi',
@@ -26,7 +34,8 @@ setup(
     install_requires=[
         'pyaudio',
         'python-daemon-3k',
-        'requests'
+        'requests',
+        'configparser;python_version<"3"',
     ],
     extras_require={
         'RPI': ['RPi.GPIO'],
