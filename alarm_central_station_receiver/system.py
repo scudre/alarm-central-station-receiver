@@ -64,13 +64,13 @@ class AlarmSystem(object):
         GPIO.setup(self.pin, GPIO.OUT)
 
     def __init__(self):
+        self.alarm = AlarmStatus()
         self.pin = AlarmConfig.config.getint('RpiArmDisarm',
                                              'gpio_pin',
                                              fallback=None)
         if not self.valid_setup():
             return
 
-        self.alarm = AlarmStatus()
         self._initialize_rpi_gpio()
 
     def arm(self, auto_arm):
