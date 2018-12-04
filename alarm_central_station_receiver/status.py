@@ -16,7 +16,7 @@ limitations under the License.
 import logging
 
 from json import load, dump
-from os import remove, path
+from os import remove, path, makedirs
 from shutil import move
 
 from alarm_central_station_receiver.singleton import Singleton
@@ -65,7 +65,12 @@ class AlarmStatus(object):
             super(AlarmStatus._klass, self).__setattr__(attr, value)
 
     def __init__(self):
-        self.datastore_path = AlarmConfig.config.get('Main', 'data_file_path')
+        datastore_path = AlarmConfig.config.get('Main', 'data_file_path')
+        if not path.exists(datastore_path):
+            makedirs(datastore_path, mode=0o755)
+            logging.info('Created data directory %s', datastore_path)
+
+        self.datastore_file = path.join(datastore_path, 'alarmd.db')
         if not self.load_data():
             self.arm_status = 'disarmed'
             self.arm_status_time = 0
@@ -80,8 +85,8 @@ class AlarmStatus(object):
         datafile to initialize
         """
         try:
-            logging.info('Loading config from %s', self.datastore_path)
-            with open(self.datastore_path, 'r') as file_desc:
+            logging.info('Loading config from %s', self.datastore_file)
+            with open(self.datastore_file, 'r') as file_desc:
                 self._datastore = load(file_desc)
                 return True
         except (IOError, ValueError):
@@ -90,12 +95,12 @@ class AlarmStatus(object):
 
     def save_data(self):
         try:
-            logging.info('Saving config to %s', self.datastore_path)
-            tmp_path = '.'.join([self.datastore_path, 'tmp'])
+            logging.info('Saving config to %s', self.datastore_file)
+            tmp_path = '.'.join([self.datastore_file, 'tmp'])
             with open(tmp_path, 'w') as file_desc:
                 dump(self._datastore, file_desc, sort_keys=True, indent=4)
 
-            move(tmp_path, self.datastore_path)
+            move(tmp_path, self.datastore_file)
         except (IOError, OSError) as exc:
             logging.error('Unable to save alarm data: %s', str(exc))
             if path.isfile(tmp_path):
