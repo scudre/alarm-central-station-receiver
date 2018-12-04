@@ -104,10 +104,11 @@ def write_config_exit(config_path):
     sys.exit(0)
 
 
-def notification_test_exit():
-    logging.info('Sending notification.\n')
+def notification_test_exit(config_path):
+    logging.info('Notification test starting...')
+    create_or_check_required_config(config_path)
     notify_test()
-    logging.info('Notification test complete, exiting.\n')
+    logging.info('Notification test complete, exiting.')
     sys.exit(0)
 
 
@@ -242,7 +243,7 @@ def main():
         write_config_exit(args.config_path)
 
     if args.notification_test:
-        notification_test_exit()
+        notification_test_exit(args.config_path)
 
     initialize(args.config_path)
 
